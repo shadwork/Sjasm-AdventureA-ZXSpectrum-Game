@@ -1,20 +1,37 @@
                                             DEVICE ZXSPECTRUM48
 
+                                            include defines.asm
+
+	                                        define VAR_KEY_ST IX-0x8
+                                            define VAR_KEY_DO IX-0x7
+	                                        define VAR_KEY_BUFFER IX-0x6
+	                                        define VAR_KEY_CO IX-0x5
+	                                        define VAR_KEY_IN0 IX-0x4
+                                            define VAR_KEY_IN1 IX-0x3
+	                                        define VAR_ITEMS_COUNTER IX-0x2
+	                                        define VAR_CURRENT_ROOM IX-0x1
+	                                        define VAR_START_GAME IX+0x0    
+                                            define VAR_START_B IX+0x1
+	                                        define VAR_START_C IX+0x2    
+                                            define VAR_LIGHT IX+0x3   
+                                            define VAR_START_E IX+0x4                                                                                                                             
+
+                                            module GAME
                                             org 0x5d40
-BYTE_ram_5d40:                              db 0x00
-BYTE_ram_5d41:                              db 0x00
-BYTE_ram_5d42:                              db 0x00
-BYTE_ram_5d43:                              db 0x00
-BYTE_ram_5d44:                              db 0x00
-BYTE_ram_5d45:                              db 0x00
-SAVE_BUFFER_PART1:                          db 0x00
-BYTE_ram_5d47:                              db 0x00
-BUFFER:                                     
-                                            db 0xCD
-                                            db 0x42
-                                            db 0x6F
-                                            db 0xCD
-                                            db 0x50
+                                            db 0x00; IX-8 VAR_KEY_ST
+VAR_KEY_DO_LABEL:                           db 0x00; IX-7
+                                            db 0x00; IX-6
+VAR_KEY_CO_LABEL:                           db 0x00; IX-5
+VAR_KEY_IN0_ADDR:                           db 0x00; IX-4 
+VAR_KEY_IN1_ADDR:                           db 0x00; IX-3
+SAVE_BUFFER_PART1:                          db 0x00; IX-2 VAR_ITEMS_COUNTER                               
+CURRENT_ROOM:                               db 0x00; IX-1 VAR_CURRENT_ROOM
+BUFFER:                                     ; clear on init 0x1e length = 30
+                                            db 0xCD ; IX+0 VAR_START
+                                            db 0x42 ; IX+1
+                                            db 0x6F ; IX+2 
+                                            db 0xCD ; IX+3 
+                                            db 0x50 ; IX+4
                                             db 0x72
                                             db 0xCD
                                             db 0x00
@@ -51,44 +68,44 @@ CLEAR_BUFFER:                               LD (HL),0x0
                                             LD HL,0x0
                                             LD (VAR_SCORE),HL
                                             CALL GAME_INIT
-                                            LD HL,GAME_STATE_INIT ;copy from
-                                            LD DE,GAME_STATE_CURRENT ;copy to
+                                            LD HL,ITEMS_BY_ROOM_TABLE_INIT ;copy from
+                                            LD DE,ITEMS_BY_ROOM_TABLE ;copy to
                                             LD BC,0x1d ;copy size
                                             LDIR
                                             LD IX,BUFFER
-                                            LD (IX-0x1),0x0
+                                            LD (VAR_CURRENT_ROOM),0x0 ; starting from room 0
                                             PUSH HL
-                                            JR LAB_ram_5dae
+                                            JR ASK_RESTORE_GAME
 TEXT_RESTORE_GAME:                          db "WANT TO RESTORE A GAME?\r",0
-LAB_ram_5dae:                               LD HL,TEXT_RESTORE_GAME 
-                                            CALL PRINT_TEXT
+ASK_RESTORE_GAME:                           LD HL,TEXT_RESTORE_GAME 
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
-                                            CP 0x59
+                                            CP 'Y'
                                             CALL Z,GAME_RESTORED
 LAB_ram_5dbd:                               CALL INIT_SCREEN
                                             XOR A
-                                            CP (IX+0x0)
+                                            CP (VAR_START_GAME) ; zero here from start
                                             JR Z,PRINT_ROOM
-                                            CP (IX+0x3)
-                                            JR Z,LAB_ram_5dce
-                                            DEC (IX+0x3)
-LAB_ram_5dce:                               LD A,(GAME_STATE_CURRENT)
-                                            CP (IX-0x1)
+                                            CP (VAR_LIGHT)
+                                            JR Z,LIGHT_CHECK
+                                            DEC (VAR_LIGHT)
+LIGHT_CHECK:                                LD A,(ITEMS_BY_ROOM_TABLE) ; starting with 0x05
+                                            CP (VAR_CURRENT_ROOM)
                                             JR Z,PRINT_ROOM
                                             PUSH HL
-                                            JR LAB_ram_5df9
+                                            JR STATE_DARK
 TEXT_EVERYTHING_DARK:                       db "EVERYTHING IS DARK.I CANT SEE.\r",0
-LAB_ram_5df9:                               LD HL,TEXT_EVERYTHING_DARK 
-                                            CALL PRINT_TEXT
+STATE_DARK:                                 LD HL,TEXT_EVERYTHING_DARK 
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             XOR A
-                                            CP (IX+0x4)
+                                            CP (VAR_START_E) ; 0x50 started = 80
                                             JR Z,LAB_ram_5e09
-                                            DEC (IX+0x4)
-LAB_ram_5e09:                               JR INPUT_LOOP
+                                            DEC (VAR_START_E)
+LAB_ram_5e09:                               JR PARSE_LOOP
 PRINT_ROOM:                                 LD DE,ROOM_DESC_POINTER 
-                                            LD L,(IX-0x1)
+                                            LD L,(VAR_CURRENT_ROOM)
                                             LD H,0x0
                                             ADD HL,HL
                                             ADD HL,DE
@@ -96,26 +113,26 @@ PRINT_ROOM:                                 LD DE,ROOM_DESC_POINTER
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL PRINT_TEXT
-                                            LD (IX-0x2),0x0
-                                            LD HL,GAME_STATE_CURRENT
-                                            LD C,0x0
+                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            LD (VAR_ITEMS_COUNTER),0x0
+                                            LD HL,ITEMS_BY_ROOM_TABLE
+                                            LD C,0x0 ; from first item
 PRINT_ITEMS:                                LD A,(HL)
                                             CP 0xff ;end of items
-                                            JR Z,INPUT_LOOP
-                                            CP (IX-0x1)
-                                            JR NZ,LAB_ram_5e67
-                                            XOR A
-                                            CP (IX-0x2)
-                                            JR NZ,LAB_ram_5e54
+                                            JR Z,PARSE_LOOP ; no item left - jump to input
+                                            CP (VAR_CURRENT_ROOM)
+                                            JR NZ,NEXT_ROOM_FOR_ITEM
+                                            XOR A ; room is found
+                                            CP (VAR_ITEMS_COUNTER) 
+                                            JR NZ,PRINT_NEXT_ITEM
                                             PUSH HL
                                             JR PRINT_ASLO_SEE
 TEXT_ALSO_SEE:                              db "I CAN ALSO SEE :\r",0
 PRINT_ASLO_SEE:                             LD HL,TEXT_ALSO_SEE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            INC (IX-0x2)
-LAB_ram_5e54:                               PUSH HL
+                                            INC (VAR_ITEMS_COUNTER)
+PRINT_NEXT_ITEM:                            PUSH HL
                                             LD HL,ITEM_DESC_POINTER 
                                             LD B,0x0
                                             ADD HL,BC
@@ -124,31 +141,31 @@ LAB_ram_5e54:                               PUSH HL
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL PRINT_TEXT
-                                            CALL PRINT_CR
+                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL SCREEN.PRINT_CR
                                             POP HL
-LAB_ram_5e67:                               INC HL
+NEXT_ROOM_FOR_ITEM:                         INC HL
                                             INC C
                                             JR PRINT_ITEMS
-INPUT_LOOP:                                 LD HL,SOME_INPUT 
-                                            JP LAB_ram_5f48
+PARSE_LOOP:                                 LD HL,TABLE_SIX 
+                                            JP PARSE_PROC
 CMD_TELL_ME:                                POP BC
                                             POP HL
                                             XOR A
-                                            CP (IX+0x2)
+                                            CP (VAR_START_C)
                                             JR Z,LAB_ram_5e7c
-                                            DEC (IX+0x2)
+                                            DEC (VAR_START_C)
 LAB_ram_5e7c:                               CP (IX+0x5)
                                             JR Z,LAB_ram_5e84
                                             DEC (IX+0x5)
 LAB_ram_5e84:                               JR LAB_ram_5e9b
 TEXT_TELL_ME:                               db "TELL ME WHAT TO DO \r",0
 LAB_ram_5e9b:                               LD HL,TEXT_TELL_ME 
-                                            CALL PRINT_TEXT
-                                            CALL SUB_ram_60e1
-                                            LD (IX-0x8),0x0
-LAB_ram_5ea8:                               CALL SUB_ram_6525
-                                            LD (BYTE_ram_5d44),A
+                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL READ_LINE
+                                            LD (VAR_KEY_ST),0x0
+LAB_ram_5ea8:                               CALL CMD_DECODE
+                                            LD (VAR_KEY_IN0_ADDR),A
                                             CP 0xff
                                             JR NZ,LAB_ram_5eec
                                             LD A,(HL) 
@@ -160,9 +177,9 @@ LAB_ram_5eba:                               PUSH HL
                                             JR LAB_ram_5ed0
 TEXT_DONT_UNDERSTAND:                       db "I DONT UNDERSTAND\r",0
 LAB_ram_5ed0:                               LD HL,TEXT_DONT_UNDERSTAND 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JR INPUT_LOOP
+                                            JR PARSE_LOOP
 LAB_ram_5ed9:                               LD A,(HL)                                            
                                             CP 0x20
                                             JR NZ,LAB_ram_5ee1
@@ -174,7 +191,7 @@ LAB_ram_5ee1:                               CP 0x0
                                             JR Z,LAB_ram_5eba
                                             INC HL
                                             JR LAB_ram_5ed9
-LAB_ram_5eec:                               LD (IX-0x3),0xff
+LAB_ram_5eec:                               LD (VAR_KEY_IN1),0xff
 LAB_ram_5ef0:                               LD A,(HL)                                            
                                             CP 0x20
                                             JR Z,LAB_ram_5f02
@@ -185,8 +202,8 @@ LAB_ram_5ef0:                               LD A,(HL)
                                             INC HL
                                             JR LAB_ram_5ef0
 LAB_ram_5f02:                               INC HL
-                                            CALL SUB_ram_6525
-                                            LD (BYTE_ram_5d45),A
+                                            CALL CMD_DECODE
+                                            LD (VAR_KEY_IN1_ADDR),A
                                             CP 0xff
                                             JR NZ,LAB_ram_5f1d
 LAB_ram_5f0d:                               LD A,(HL) 
@@ -200,7 +217,7 @@ LAB_ram_5f0d:                               LD A,(HL)
                                             INC HL
                                             JR LAB_ram_5f0d
 LAB_ram_5f1d:                               LD D,0x0
-                                            LD E,(IX-0x1)
+                                            LD E,(VAR_CURRENT_ROOM)
                                             LD HL,SOME_POINTER 
                                             ADD HL,DE
                                             ADD HL,DE
@@ -211,191 +228,191 @@ LAB_ram_5f1d:                               LD D,0x0
 LAB_ram_5f2b:                               LD A,(HL)
                                             CP 0xff
                                             JR Z,LAB_ram_5f41
-                                            CP (IX-0x4)
+                                            CP (VAR_KEY_IN0)
                                             JR NZ,LAB_ram_5f3d
                                             INC HL
                                             LD A,(HL)
-                                            LD (IX-0x1),A
+                                            LD (VAR_CURRENT_ROOM),A
                                             JP LAB_ram_5dbd
 LAB_ram_5f3d:                               INC HL
                                             INC HL
                                             JR LAB_ram_5f2b
 LAB_ram_5f41:                               LD HL,DIR_TABLE 
-                                            LD (IX-0x6),0x0
-LAB_ram_5f48:                               LD A,(HL)                         
+                                            LD (VAR_KEY_BUFFER),0x0
+PARSE_PROC:                                 LD A,(HL) ; pointed to TABLE_SIX = ff from start                      
                                             OR A
-                                            JR NZ,LAB_ram_5fc0
-                                            CP (IX-0x6)
-                                            JP NZ,INPUT_LOOP
-                                            LD A,(IX-0x4)
+                                            JR NZ,ACTION_FOUND
+                                            CP (VAR_KEY_BUFFER)
+                                            JP NZ,PARSE_LOOP
+                                            LD A,(VAR_KEY_IN0)
                                             CP 0xd
-                                            JR C,LAB_ram_5f95
-                                            LD A,(IX-0x8)
+                                            JR C,PRINT_CANT_GO ; more then d
+                                            LD A,(VAR_KEY_ST)
                                             OR A
-                                            JR NZ,LAB_ram_5f74
+                                            JR NZ,CANT_DO_YET
                                             PUSH HL                                             
-                                            JR LAB_ram_5f6a
+                                            JR PRINT_CANT
 TEXT_I_CANT:                                db "I CANT\r",0
-LAB_ram_5f6a:                               LD HL,TEXT_I_CANT 
-                                            CALL PRINT_TEXT
+PRINT_CANT:                                 LD HL,TEXT_I_CANT 
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JP INPUT_LOOP
-LAB_ram_5f74:                               PUSH HL                                             
-                                            JR LAB_ram_5f8b
+                                            JP PARSE_LOOP
+CANT_DO_YET:                                PUSH HL                                             
+                                            JR PRINT_CANT_DO_YET
 TEXT_I_CANT_DO_YET:                         db "I CANT DO THAT YET\r",0
-LAB_ram_5f8b:                               LD HL,TEXT_I_CANT_DO_YET 
-                                            CALL PRINT_TEXT
+PRINT_CANT_DO_YET:                          LD HL,TEXT_I_CANT_DO_YET 
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JP INPUT_LOOP
-LAB_ram_5f95:                               PUSH HL  
-                                            JR LAB_ram_5fb5
+                                            JP PARSE_LOOP
+PRINT_CANT_GO:                              PUSH HL  
+                                            JR PRINT_CANT_GO_TEXT
 TEXT_I_CANT_GO:                             db "I CANT GO IN THAT DIRECTION\r",0
-LAB_ram_5fb5:                               LD HL,TEXT_I_CANT_GO 
-                                            CALL PRINT_TEXT
+PRINT_CANT_GO_TEXT:                         LD HL,TEXT_I_CANT_GO 
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JP INPUT_LOOP
+                                            JP PARSE_LOOP
                                             NOP
-LAB_ram_5fc0:                               CP 0xff
-                                            JR Z,LAB_ram_5fd0
-                                            CP (IX-0x4)
-                                            JR Z,LAB_ram_5fd0
-LAB_ram_5fc9:                               LD DE,0x6
+ACTION_FOUND:                               CP 0xff ; start value ff
+                                            JR Z,COMMAND_FOUND_FF
+                                            CP (VAR_KEY_IN0)
+                                            JR Z,COMMAND_FOUND_FF
+CMD_NEXT_BLOCK:                             LD DE,0x6 ; next block 
                                             ADD HL,DE
-                                            JP LAB_ram_5f48
-LAB_ram_5fd0:                               INC HL
+                                            JP PARSE_PROC
+COMMAND_FOUND_FF:                           INC HL ; get second byte
                                             LD A,(HL) 
                                             CP 0xff
-                                            JR Z,LAB_ram_5fde
-                                            CP (IX-0x3)
-                                            JR Z,LAB_ram_5fde
+                                            JR Z,CMD2_FOUND_FF
+                                            CP (VAR_KEY_IN1)
+                                            JR Z,CMD2_FOUND_FF
                                             DEC HL
-                                            JR LAB_ram_5fc9
-LAB_ram_5fde:                               INC HL
+                                            JR CMD_NEXT_BLOCK
+CMD2_FOUND_FF:                              INC HL
                                             LD C,(HL) 
                                             INC HL
-                                            LD B,(HL)
+                                            LD B,(HL) ; first value in BC 
                                             INC HL
-LAB_ram_5fe3:                               LD A,(BC) 
+JUMP_NEXT_BCA:                              LD A,(BC) 
                                             CP 0xff
-                                            JP Z,LAB_ram_60af
-                                            LD (BYTE_ram_5d43),A
+                                            JP Z,LAST_ITEM_FF
+                                            LD (VAR_KEY_CO_LABEL),A ; first [0] = 6,5,1,5,6,ff
                                             INC BC
                                             LD A,(BC) 
-                                            LD (BYTE_ram_5d41),A
+                                            LD (VAR_KEY_DO_LABEL),A ; second [1] = 5
                                             PUSH HL 
-                                            LD HL,ROOM_POINTER 
+                                            LD HL,PROC_POINTER 
                                             LD D,0x0
-                                            LD E,(IX-0x5)
+                                            LD E,(VAR_KEY_CO)
                                             ADD HL,DE
                                             ADD HL,DE
                                             LD E,(HL) 
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            JP (HL)
-LAB_ram_6001:                               LD A,(BYTE_ram_5d41)
-                                            CP (IX-0x1)
-                                            JR Z,LAB_ram_6063
-LAB_ram_6009:                               POP HL
+                                            JP (HL) ; jump to pointer
+PROC_00:                                    LD A,(VAR_KEY_DO_LABEL)
+                                            CP (VAR_CURRENT_ROOM)
+                                            JR Z,PROCS_RET
+PROC_NEXT:                                  POP HL
                                             INC HL
                                             INC HL
-                                            LD (IX-0x8),1
-                                            JP LAB_ram_5f48
-LAB_ram_6013:                               LD HL,GAME_STATE_CURRENT
+                                            LD (VAR_KEY_ST),1
+                                            JP PARSE_PROC
+PROC_01:                                    LD HL,ITEMS_BY_ROOM_TABLE
                                             LD D,0x0
-                                            LD E,(IX-0x7)
+                                            LD E,(VAR_KEY_DO)
                                             ADD HL,DE
                                             LD A,(HL)
-                                            CP (IX-0x1)
-                                            JR Z,LAB_ram_6063
+                                            CP (VAR_CURRENT_ROOM)
+                                            JR Z,PROCS_RET
                                             CP 0xfd
-                                            JR NC,LAB_ram_6063
-                                            JR LAB_ram_6009
-LAB_ram_6028:                               LD A,R
-                                            SUB (IX-0x7)
-                                            JR C,LAB_ram_6063
-                                            JR LAB_ram_6009
-LAB_ram_6031:                               LD HL,GAME_STATE_CURRENT
+                                            JR NC,PROCS_RET
+                                            JR PROC_NEXT
+PROC_02:                                    LD A,R
+                                            SUB (VAR_KEY_DO)
+                                            JR C,PROCS_RET
+                                            JR PROC_NEXT
+PROC_03:                                    LD HL,ITEMS_BY_ROOM_TABLE
                                             LD D,0x0
-                                            LD E,(IX-0x7)
+                                            LD E,(VAR_KEY_DO)
                                             ADD HL,DE
                                             LD A,(HL)
-                                            CP (IX-0x1)
-                                            JR Z,LAB_ram_6009
+                                            CP (VAR_CURRENT_ROOM)
+                                            JR Z,PROC_NEXT
                                             CP 0xfd
-                                            JR NC,LAB_ram_6009
-                                            JR LAB_ram_6063
-LAB_ram_6046:                               LD HL,GAME_STATE_CURRENT
+                                            JR NC,PROC_NEXT
+                                            JR PROCS_RET
+PROC_04:                                    LD HL,ITEMS_BY_ROOM_TABLE
                                             LD D,0x0
-                                            LD E,(IX-0x7)
+                                            LD E,(VAR_KEY_DO)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP 0xfd
-                                            JR Z,LAB_ram_6063
-                                            JR LAB_ram_6009
-LAB_ram_6056:                               LD HL,BUFFER
+                                            JR Z,PROCS_RET
+                                            JR PROC_NEXT
+PROC_05:                                    LD HL,BUFFER
                                             LD D,0x0
-                                            LD E,(IX-0x7)
+                                            LD E,(VAR_KEY_DO)
                                             ADD HL,DE
                                             LD A,(HL)
                                             OR A
-                                            JR Z,LAB_ram_6009
-LAB_ram_6063:                               POP HL
+                                            JR Z,PROC_NEXT
+PROCS_RET:                                  POP HL
                                             INC BC
-                                            JP LAB_ram_5fe3
-SUB_ram_6068:                               INC BC
+                                            JP JUMP_NEXT_BCA
+PROC_06:                                    INC BC
                                             LD A,(BC) 
                                             LD HL,BUFFER
                                             LD D,0x0
-                                            LD E,(IX-0x7)
+                                            LD E,(VAR_KEY_DO)
                                             ADD HL,DE
                                             CP (HL)
-                                            JR NZ,LAB_ram_6009
-                                            JR LAB_ram_6063
-LAB_ram_6078:                               LD HL,BUFFER
+                                            JR NZ,PROC_NEXT ; next is triggered
+                                            JR PROCS_RET
+PROC_07:                                    LD HL,BUFFER
                                             LD D,0x0
-                                            LD E,(IX-0x7)
+                                            LD E,(VAR_KEY_DO)
                                             ADD HL,DE
                                             LD A,(HL)
                                             OR A
-                                            JP NZ,LAB_ram_6009
-                                            JR LAB_ram_6063
-LAB_ram_6088:                               LD HL,GAME_STATE_CURRENT
+                                            JP NZ,PROC_NEXT
+                                            JR PROCS_RET
+PROC_08:                                    LD HL,ITEMS_BY_ROOM_TABLE
                                             LD D,0x0
-                                            LD E,(IX-0x7)
+                                            LD E,(VAR_KEY_DO)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP 0xfe
-                                            JR Z,LAB_ram_6063
+                                            JR Z,PROCS_RET
                                             CP 0xfd
-                                            JR Z,LAB_ram_6063
-                                            JP LAB_ram_6009
-ROOM_POINTER:                               dw LAB_ram_6001
-                                            dw LAB_ram_6013
-                                            dw LAB_ram_6028
-                                            dw LAB_ram_6031
-                                            dw LAB_ram_6046
-                                            dw LAB_ram_6056
-PTR_SUB_ram_6068_ram_60a9:                  dw SUB_ram_6068
-                                            dw LAB_ram_6078
-                                            dw LAB_ram_6088
-LAB_ram_60af:                               LD C,(HL) 
+                                            JR Z,PROCS_RET
+                                            JP PROC_NEXT
+PROC_POINTER:                               dw PROC_00
+                                            dw PROC_01
+                                            dw PROC_02
+                                            dw PROC_03
+                                            dw PROC_04
+                                            dw PROC_05
+                                            dw PROC_06 ; start element
+                                            dw PROC_07
+                                            dw PROC_08
+LAST_ITEM_FF:                               LD C,(HL) 
                                             INC HL
                                             LD B,(HL)
                                             INC HL
-                                            LD (IX-0x6),1
+                                            LD (VAR_KEY_BUFFER),1
 LAB_ram_60b7:                               LD A,(BC)             
                                             CP 0xff
-                                            JP Z,LAB_ram_5f48
-                                            LD (BYTE_ram_5d43),A
+                                            JP Z,PARSE_PROC
+                                            LD (VAR_KEY_CO_LABEL),A
                                             INC BC
                                             LD A,(BC) 
-                                            LD (BYTE_ram_5d41),A
+                                            LD (VAR_KEY_DO_LABEL),A
                                             PUSH HL 
                                             PUSH BC 
                                             LD HL,CMD_POINTER 
                                             LD D,0x0
-                                            LD E,(IX-0x5)
+                                            LD E,(VAR_KEY_CO)
                                             ADD HL,DE
                                             ADD HL,DE
                                             LD E,(HL) 
@@ -403,15 +420,15 @@ LAB_ram_60b7:                               LD A,(BC)
                                             LD D,(HL)
                                             EX DE,HL
                                             JP (HL)
-SUB_ram_60d6:                               LD HL,GAME_STATE_CURRENT
+SUB_ram_60d6:                               LD HL,ITEMS_BY_ROOM_TABLE
                                             LD B,0x0
-                                            LD C,(IX-0x7)
+                                            LD C,(VAR_KEY_DO)
                                             ADD HL,BC
                                             LD A,(HL)
                                             RET
-SUB_ram_60e1:                               LD HL,SOME_DATA 
-                                            JP SUB_ram_678d
-SOME_DATA:                                  db 0xB3
+READ_LINE:                                  LD HL,LINE_BUFFER 
+                                            JP READ_LINE_START
+LINE_BUFFER:                                db 0xB3
                                             db 0xB2
                                             db 0xB8
                                             db 0x20
@@ -449,7 +466,7 @@ CMD_POINTER:                                dw CMD_INVENTORY
                                             dw CMD_CANT_CARRY
                                             dw CMD_DONT_HAVE
                                             dw CMD_ALREADY_WEAR
-PTR_CMD_TURN_GREEN_ram_6112:                dw CMD_TURN_GREEN
+                                            dw CMD_TURN_GREEN
                                             dw CMD_LOOK_AROUND
                                             dw CMD_NOTHING
                                             dw CMD_6362
@@ -473,17 +490,17 @@ CMD_INVENTORY:                              PUSH HL
                                             JR LAB_ram_615c
 TEXT_HAVE_WITH_ME:                          db "I HAVE WITH ME THE FOLLOWING:\r",0
 LAB_ram_615c:                               LD HL,TEXT_HAVE_WITH_ME 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            LD (IX-0x2),0x0
-                                            LD HL,GAME_STATE_CURRENT
+                                            LD (VAR_ITEMS_COUNTER),0x0
+                                            LD HL,ITEMS_BY_ROOM_TABLE
                                             LD C,0x0
 LAB_ram_616c:                               LD A,(HL)
                                             CP 0xff
                                             JR Z,LAB_ram_61b3
                                             CP 0xfd
                                             JR C,LAB_ram_61af
-                                            LD (IX-0x2),0x1
+                                            LD (VAR_ITEMS_COUNTER),0x1
                                             PUSH HL
                                             LD HL,ITEM_DESC_POINTER 
                                             LD B,0x0
@@ -493,29 +510,30 @@ LAB_ram_616c:                               LD A,(HL)
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             LD A,(HL)
                                             CP 0xfd
                                             JR NZ,LAB_ram_61ac
                                             PUSH HL
                                             LD HL,TEXT_WHICH_I_AM_WEARING 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JR LAB_ram_61ac
 TEXT_WHICH_I_AM_WEARING:                    db " WHICH I AM WEARING",0
-LAB_ram_61ac:                               CALL PRINT_CR
+                                            CALL SCREEN.PRINT_CR
+LAB_ram_61ac:                               CALL SCREEN.PRINT_CHAR
 LAB_ram_61af:                               INC HL
                                             INC C
                                             JR LAB_ram_616c
 LAB_ram_61b3:                               XOR A
-                                            CP (IX-0x2)
+                                            CP (VAR_ITEMS_COUNTER)
                                             JP NZ,CMD_LOOP
                                             PUSH HL
                                             JR LAB_ram_61cd
 TEXT_NOTHING:                               db "NOTHING AT ALL\r",0
 LAB_ram_61cd:                               LD HL,TEXT_NOTHING 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_NOT_WEARING:                            CALL SUB_ram_60d6
@@ -525,76 +543,76 @@ CMD_NOT_WEARING:                            CALL SUB_ram_60d6
                                             JR LAB_ram_61f6
 TEXT_NOT_WEARING:                           db "I AM NOT WEARING IT\r",0
 LAB_ram_61f6:                               LD HL,TEXT_NOT_WEARING 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-LAB_ram_6200:                               LD A,(IX+0x1)
+LAB_ram_6200:                               LD A,(VAR_START_B)
                                             CP 0x6
                                             JR NZ,LAB_ram_622f
                                             PUSH HL
                                             JR LAB_ram_6225
 TEXT_HAND_FULL:                             db "I CANT. MY HANDS ARE FULL\r",0
 LAB_ram_6225:                               LD HL,TEXT_HAND_FULL 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 LAB_ram_622f:                               LD (HL),0xfe
-                                            INC (IX+0x1)
+                                            INC (VAR_START_B)
                                             JP LAB_ram_6382
-CMD_CANT_CARRY:                             LD A,(IX+0x1)
+CMD_CANT_CARRY:                             LD A,(VAR_START_B)
                                             CP 0x6
                                             JR NZ,LAB_ram_6262
                                             PUSH HL
                                             JR LAB_ram_6258
 TEXT_CANT_CARRY:                            db "I CANT CARRY ANY MORE\r",0
 LAB_ram_6258:                               LD HL,TEXT_CANT_CARRY 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 LAB_ram_6262:                               CALL SUB_ram_60d6
-                                            CP (IX-0x1)
+                                            CP (VAR_CURRENT_ROOM)
                                             JR NZ,LAB_ram_6272
                                             LD (HL),0xfe
-                                            INC (IX+0x1)
+                                            INC (VAR_START_B)
                                             JP LAB_ram_6382
 LAB_ram_6272:                               CP 0xfd
                                             JR Z,LAB_ram_6298
                                             CP 0xfe
                                             JR Z,LAB_ram_6298
                                             LD HL,TEXT_I_DONT_SEE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             JP CMD_LOOP
 TEXT_I_DONT_SEE:                            db "I DON'T SEE IT HERE\r",0
 LAB_ram_6298:                               PUSH HL
                                             JR LAB_ram_62ae
 TEXT_ALREADY_HAVE:                          db "I ALREADY HAVE IT\r",0
 LAB_ram_62ae:                               LD HL,TEXT_ALREADY_HAVE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_DONT_HAVE:                              CALL SUB_ram_60d6
-                                            CP (IX-0x1)
+                                            CP (VAR_CURRENT_ROOM)
                                             JR NZ,LAB_ram_62dd
 LAB_ram_62c0:                               PUSH HL
                                             JR LAB_ram_62d3
 TEXT_I_DONT_HAVE:                           db "I DONT HAVE IT\r",0
 LAB_ram_62d3:                               LD HL,TEXT_I_DONT_HAVE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 LAB_ram_62dd:                               CP 0xfd
                                             JR Z,LAB_ram_62e8
                                             CP 0xfe
                                             JR NZ,LAB_ram_62c0
-                                            DEC (IX+0x1)
-LAB_ram_62e8:                               LD A,(IX-0x1)
+                                            DEC (VAR_START_B)
+LAB_ram_62e8:                               LD A,(VAR_CURRENT_ROOM)
                                             LD (HL),A
                                             JP LAB_ram_6382
 CMD_ALREADY_WEAR:                           CALL SUB_ram_60d6
                                             CP 0xfe
                                             JR NZ,LAB_ram_62fe
                                             LD (HL),0xfd
-                                            DEC (IX+0x1)
+                                            DEC (VAR_START_B)
                                             JP LAB_ram_6382
 LAB_ram_62fe:                               CP 0xfd
                                             JR NZ,LAB_ram_6328
@@ -602,45 +620,45 @@ LAB_ram_62fe:                               CP 0xfd
                                             JR LAB_ram_631e
 TEXT_ALREADY_WEAR:                          db "I AM ALREADY WEARING IT\r",0
 LAB_ram_631e:                               LD HL,TEXT_ALREADY_WEAR 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 LAB_ram_6328:                               PUSH HL
                                             JR LAB_ram_633b
 TEXT_I_DONT_HAVE_IT:                        db "I DONT HAVE IT\r",0
 LAB_ram_633b:                               LD HL,TEXT_I_DONT_HAVE_IT 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_TURN_GREEN:                             LD HL,ACTION_POINTER 
                                             LD B,0x0
-                                            LD C,(IX-0x7)
+                                            LD C,(VAR_KEY_DO)
                                             ADD HL,BC
                                             ADD HL,BC
                                             LD E,(HL) 
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             JR LAB_ram_6382
 CMD_LOOK_AROUND:                            POP BC
                                             POP HL
                                             JP LAB_ram_5dbd
 CMD_NOTHING:                                POP BC
                                             POP HL
-                                            JP INPUT_LOOP
-CMD_6362:                                   LD A,(IX-0x7)
-                                            LD (IX-0x1),A
+                                            JP PARSE_LOOP
+CMD_6362:                                   LD A,(VAR_KEY_DO)
+                                            LD (VAR_CURRENT_ROOM),A
                                             JR LAB_ram_6382
 CMD_636a:                                   LD HL,BUFFER
                                             LD B,0x0
-                                            LD C,(IX-0x7)
+                                            LD C,(VAR_KEY_DO)
                                             ADD HL,BC
                                             LD (HL),0xff
                                             JR LAB_ram_6382
 CMD_6377:                                   LD HL,BUFFER
                                             LD B,0x0
-                                            LD C,(IX-0x7)
+                                            LD C,(VAR_KEY_DO)
                                             ADD HL,BC
                                             LD (HL),0x0
 LAB_ram_6382:                               POP BC
@@ -659,14 +677,14 @@ CMD_OK:                                     PUSH HL
                                             JR LAB_ram_639e
 TEXT_OK:                                    db "OK..\r",0
 LAB_ram_639e:                               LD HL,TEXT_OK 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_SAVE:                                   PUSH HL
                                             JR LAB_ram_63ca
 TEXT_WANT_SAVE:                             db "DO YOU WANT TO SAVE THE GAME?\r",0
 LAB_ram_63ca:                               LD HL,TEXT_WANT_SAVE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             CP 0x59
@@ -678,13 +696,13 @@ LAB_ram_63ca:                               LD HL,TEXT_WANT_SAVE
                                             JR LAB_ram_63f4
 TEXT_READY_TYPE:                            db "READY CASSETTE\r",0
 LAB_ram_63f4:                               LD HL,TEXT_READY_TYPE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             LD A,0xff
                                             SCF
                                             CALL 0x04c2
-                                            LD IX,GAME_STATE_CURRENT
+                                            LD IX,ITEMS_BY_ROOM_TABLE
                                             LD DE,0x1d
                                             LD A,0xff
                                             SCF
@@ -694,7 +712,7 @@ LAB_ram_63f4:                               LD HL,TEXT_READY_TYPE
                                             JR LAB_ram_6430
 TEXT_CONTINUE:                              db "DO YOU WISH TO CONTINUE?\r",0
 LAB_ram_6430:                               LD HL,TEXT_CONTINUE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             CP 0x59
@@ -703,13 +721,13 @@ LAB_ram_643f:                               PUSH HL
                                             JR LAB_ram_645d
 TEXT_TRY_AGAIN:                             db "DO YOU WISH TO TRY AGAIN?\r",0
 LAB_ram_645d:                               LD HL,TEXT_TRY_AGAIN 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
 LAB_ram_6464:                               PUSH HL
                                             JR LAB_ram_6479
 TEXT_ANSWER:                                db "ANSWER YES OR NO\r",0
 LAB_ram_6479:                               LD HL,TEXT_ANSWER 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             NOP
@@ -724,32 +742,32 @@ CMD_6492:                                   POP BC
                                             INC BC
                                             PUSH BC
                                             LD A,(BC)
-                                            LD (BYTE_ram_5d43),A
+                                            LD (VAR_KEY_CO_LABEL),A
                                             LD HL,BUFFER
                                             LD B,0x0
-                                            LD C,(IX-0x7)
+                                            LD C,(VAR_KEY_DO)
                                             ADD HL,BC
                                             LD (HL),A
                                             JP LAB_ram_6382
-CMD_64a6:                                   LD HL,GAME_STATE_CURRENT
+CMD_64a6:                                   LD HL,ITEMS_BY_ROOM_TABLE
                                             LD B,0x0
-                                            LD C,(IX-0x7)
+                                            LD C,(VAR_KEY_DO)
                                             ADD HL,BC
-                                            LD A,(IX-0x1)
+                                            LD A,(VAR_CURRENT_ROOM)
                                             LD (HL),A
                                             JP LAB_ram_6382
-CMD_64b6:                                   LD HL,GAME_STATE_CURRENT
+CMD_64b6:                                   LD HL,ITEMS_BY_ROOM_TABLE
                                             LD B,0x0
-                                            LD C,(IX-0x7)
+                                            LD C,(VAR_KEY_DO)
                                             ADD HL,BC
                                             LD (HL),0xfc
                                             JP LAB_ram_6382
 CMD_LOOP:                                   POP BC
                                             POP HL
-                                            JP INPUT_LOOP
+                                            JP PARSE_LOOP
 CMD_SCORE:                                  LD A,(VAR_SCORE)
                                             LD B,A
-                                            LD A,(BYTE_ram_5d41)
+                                            LD A,(VAR_KEY_DO_LABEL)
                                             ADD A,B
                                             DAA
                                             LD (VAR_SCORE),A
@@ -763,12 +781,12 @@ CMD_SCORE:                                  LD A,(VAR_SCORE)
                                             JP LAB_ram_6382
 TEXT_SCORE:                                 db "YOU HAVE A SCORE OF ",0
 CMD_GAME:                                   LD HL,TEXT_SCORE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             LD A,(VAR_SCORE+1)
                                             CALL PRINT_SCORE
                                             LD A,(VAR_SCORE)
                                             CALL PRINT_SCORE
-                                            CALL PRINT_CR
+                                            CALL SCREEN.PRINT_CR
                                             POP BC
                                             POP HL
                                             JP LAB_ram_60b7
@@ -777,53 +795,47 @@ PRINT_SCORE:                                PUSH AF
                                             RRA
                                             RRA
                                             RRA
-                                            CALL PRINT_DIGIT
+                                            CALL SCREEN.PRINT_DIGIT
                                             POP AF
-PRINT_DIGIT:                                PUSH AF
-                                            AND 0xf
-                                            ADD A,0x30
-                                            CALL PRINT_CHAR
-                                            POP AF
-                                            RET
-SUB_ram_6525:                               PUSH HL
+
+CMD_DECODE:                                 PUSH HL
                                             LD HL,0x2020
                                             LD (VAR_VAR1),HL 
                                             LD (VAR_VAR2),HL 
                                             POP HL
                                             LD DE,VAR_VAR1 
-                                            LD B,0x4
-LAB_ram_6535:                               LD A,(HL)
+                                            LD B,0x4 ; cmd length
+CMD_DECODE_LOOP:                            LD A,(HL)
                                             CP 0x20
-                                            JR Z,LAB_ram_6547
+                                            JR Z,LABEL_LINE_DELIM
                                             CP 0x0
-                                            JR Z,LAB_ram_6547
+                                            JR Z,LABEL_LINE_DELIM
                                             CP 0xd
-                                            JR Z,LAB_ram_6547
+                                            JR Z,LABEL_LINE_DELIM
                                             LD (DE),A 
                                             INC HL
                                             INC DE
-                                            DJNZ LAB_ram_6535
-LAB_ram_6547:                               PUSH HL
+                                            DJNZ CMD_DECODE_LOOP
+LABEL_LINE_DELIM:                           PUSH HL
                                             LD HL,COMMAND_LIST 
                                             LD A,0xff
                                             PUSH AF
-LAB_ram_654e:                               LD (IX-0x2),0x0
+LAB_ram_654e:                               LD (VAR_ITEMS_COUNTER),0x0
                                             LD B,0x4
                                             LD DE,VAR_VAR1 
 LAB_ram_6557:                               LD A,(HL) 
-                                            
                                             
                                             CP 0xff
                                             JR Z,LAB_ram_6571
                                             LD A,(DE) 
                                             CP (HL) 
                                             JR Z,LAB_ram_6564
-                                            LD (IX-0x2),0x1
+                                            LD (VAR_ITEMS_COUNTER),0x1
 LAB_ram_6564:                               INC HL
                                             INC DE
                                             DJNZ LAB_ram_6557
                                             XOR A
-                                            CP (IX-0x2)
+                                            CP (VAR_ITEMS_COUNTER)
                                             JR NZ,LAB_ram_6574
                                             POP AF
                                             LD A,(HL) 
@@ -837,7 +849,7 @@ GAME_RESTORED:                              PUSH HL
                                             JR LAB_ram_658a
 TEXT_READY_CASSETE:                         db "READY CASSETTE\r",0
 LAB_ram_658a:                               LD HL,TEXT_READY_CASSETE 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             PUSH IX
@@ -846,7 +858,7 @@ LAB_ram_658a:                               LD HL,TEXT_READY_CASSETE
                                             LD A,0xff
                                             SCF
                                             CALL 0x0556
-                                            LD IX,GAME_STATE_CURRENT
+                                            LD IX,ITEMS_BY_ROOM_TABLE
                                             LD DE,0x1d ;size of game state
                                             LD A,0xff
                                             SCF
@@ -855,42 +867,25 @@ LAB_ram_658a:                               LD HL,TEXT_READY_CASSETE
                                             RET
 GAME_INIT:                                  CALL INIT_SCREEN
                                             LD HL,TEXT_WELCOME 
-                                            CALL PRINT_TEXT
+                                            CALL SCREEN.PRINT_TEXT_WRAP
                                             JP WAIT_KEY
 TEXT_WELCOME:                               db "WELCOME TO ADVENTURE 'A'\rTHE PLANET OF DEATH\r\rIN THIS ADVENTURE YOU FIND YOUR"
                                             db "SELF STRANDED ON AN ALIEN PLANET. YOUR AIM IS TO ESCAPE FROM THIS PLANET BY FIND"
                                             db "ING YOUR, NOW CAPTURED AND DISABLED, SPACE SHIP\rYOU WILL MEET VARIOUS HAZARDS A"
                                             db "ND DANGERS ON YOUR ADVENTURE, SOME NATURAL, SOME NOT, ALL OF WHICH YOU MUST OVER"
                                             db "COME TO SUCCEED\r\rGOOD LUCK, YOU WILL NEED IT!\r\rPRESS ANY KEY TO START\r",0
-PRINT_CHAR:                                 PUSH IX
-                                            PUSH HL
-                                            PUSH DE
-                                            PUSH BC
-                                            PUSH AF
-                                            LD HL,0x5c8c
-                                            LD (HL),0xff ;disable scrolling
-                                            RST 0x0010
-                                            POP AF
-                                            PUSH AF
-                                            CP 0xd
-                                            CALL Z,INIT_20
-                                            POP AF
-                                            POP BC
-                                            POP DE
-                                            POP HL
-                                            POP IX
-                                            RET
-WAIT_KEY:                                   LD (IY-0x32),0x0
-LAB_ram_6760:                               LD A,(IY-0x32)
+WAIT_KEY:                                   XOR A
+                                            LD (KEYBOARD.LASTK),A
+WRONG_KEY:                                  LD A,(KEYBOARD.LASTK)
                                             OR A
-                                            JR Z,LAB_ram_6760
-                                            CP 0x90
-                                            JR NC,LAB_ram_6760
-                                            CP 0xc
-                                            JR C,LAB_ram_6760
-                                            CP 0x60
+                                            JR Z,WRONG_KEY
+                                            CP 0x90 ;
+                                            JR NC,WRONG_KEY
+                                            CP 0xc ; "Form Feed" - next CR
+                                            JR C,WRONG_KEY
+                                            CP 0x60 ; "`"
                                             RET C
-                                            SUB 0x20
+                                            SUB 0x20 ; lower to caps
                                             RET
                                             db 0xD5
                                             db 0x57
@@ -916,104 +911,47 @@ LAB_ram_6787:                               LD A,D
                                             RET
                                             XOR A
                                             JR LAB_ram_6787
-SUB_ram_678d:                               PUSH HL
+READ_LINE_START:                            PUSH HL
                                             LD B,0x20
-LAB_ram_6790:                               LD (HL),0x0
+INPUT_LINE_LOOP:                            LD (HL),0x0
                                             CALL WAIT_KEY
-                                            CP 0xc
-                                            JR NZ,LAB_ram_67b1
+                                            CP 0xc ; delete
+                                            JR NZ,INPUT_CHAR
                                             LD A,0x20
                                             CP B
-                                            JR Z,LAB_ram_6790
+                                            JR Z,INPUT_LINE_LOOP
                                             INC B
                                             DEC HL
-LAB_ram_67a0:                               LD A,0x8
-                                            CALL PRINT_CHAR
+INPUT_LINE_FULL:                            LD A,0x8
+                                            CALL SCREEN.PRINT_CHAR
                                             LD A,0x20
-                                            CALL PRINT_CHAR
+                                            CALL SCREEN.PRINT_CHAR
                                             LD A,0x8
-                                            CALL PRINT_CHAR
-                                            JR LAB_ram_6790
-LAB_ram_67b1:                               CALL PRINT_CHAR
+                                            CALL SCREEN.PRINT_CHAR
+                                            JR INPUT_LINE_LOOP
+INPUT_CHAR:                                 CALL SCREEN.PRINT_CHAR
                                             CP 0xd
-                                            JR Z,LAB_ram_67c1
+                                            JR Z,INPUT_END_LINE
                                             INC B
                                             DEC B
-                                            JR Z,LAB_ram_67a0
+                                            JR Z,INPUT_LINE_FULL
                                             DEC B
                                             LD (HL),A
                                             INC HL
-                                            JR LAB_ram_6790
-LAB_ram_67c1:                               POP HL
-                                            RET
-PRINT_CR:                                   PUSH AF
-                                            LD A,0xd
-                                            CALL PRINT_CHAR
-                                            POP AF
+                                            JR INPUT_LINE_LOOP
+INPUT_END_LINE:                             POP HL
                                             RET
 INIT_SCREEN:                                PUSH HL
                                             PUSH DE
                                             PUSH BC
                                             PUSH AF
-                                            CALL 0x0daf
-                                            CALL INIT_20
+                                            LD A, CLR_BLACK<<3 | CLR_GREEN
+                                            CALL SCREEN.CLEAR
                                             POP AF
                                             POP BC
                                             POP DE
                                             POP HL
                                             RET
-INIT_20:                                    LD A,0x20
-                                            LD (SCR_POS_X),A 
-                                            RET
-PRINT_SPACE:                                PUSH AF
-                                            LD A,0x20
-                                            CALL PRINT_CHAR
-                                            POP AF
-                                            DEC A
-                                            RET
-SCR_POS_X:                                  db 0x20
-PRINT_TEXT:                                 NOP
-LAB_ram_67eb:                               LD A,(HL)
-                                            INC HL
-                                            OR A
-                                            RET Z
-                                            CP 0xd ;carridge return '\r'
-                                            CALL Z,PRINT_CR
-                                            JR Z,LAB_ram_67eb
-                                            CP 0x20
-                                            JR Z,LAB_ram_67eb
-                                            DEC HL
-                                            PUSH HL
-                                            LD B,0x0
-PRINT_TEXT_SKIP:                            LD A,(HL)
-                                            CP 0x20
-                                            JR Z,LAB_ram_680e
-                                            OR A
-                                            JR Z,LAB_ram_680e
-                                            CP 0xd
-                                            JR Z,LAB_ram_680e
-                                            INC B
-                                            INC HL
-                                            JR PRINT_TEXT_SKIP
-LAB_ram_680e:                               LD A,(SCR_POS_X) 
-                                            CP B
-                                            CALL C,PRINT_CR
-                                            POP HL
-LAB_ram_6816:                               LD A,(HL)
-                                            CP 0x20
-                                            JR Z,LAB_ram_6828
-                                            OR A
-                                            JR Z,LAB_ram_6828
-                                            CP 0xd
-                                            JR Z,LAB_ram_6828
-                                            CALL PRINT_CHAR
-                                            INC HL
-                                            JR LAB_ram_6816
-LAB_ram_6828:                               LD A,(SCR_POS_X) 
-                                            SUB B
-                                            CALL NZ,PRINT_SPACE
-                                            LD (SCR_POS_X),A 
-                                            JR PRINT_TEXT
 ROOM_DESC_POINTER:                          dw PLACE_MOUNTAIN_PLATEA 
                                             dw PLACE_EDGE_OF_A_DEEP_PIT 
                                             dw PLACE_DAMP_LIMESTONE_CAVE 
@@ -1063,8 +1001,8 @@ PLACE_LIFT_CONTROL_ROOM:                    db "I AM IN THE LIFT CONTROL ROOM\rT
 PLACE_PRISON_CELL:                          db "I AM IN A PRISON CELL\r",0
 PLACE_SPACE_SHIP:                           db "I AM IN A SPACE SHIP.THERE IS NO VISIBLE EXIT\rTHERE IS A SMALL OPEN WINDOW IN T"
                                             db "HE SIDE\rTHERE ARE ALSO TWO BUTTONS,ONE MARKED MAIN AND THE OTHER AUX.\r",0
-GAME_STATE_INIT:                            
-                                            db 0x05
+ITEMS_BY_ROOM_TABLE_INIT:                            
+                                            db 0x05 ; value = room number, where item is placed
                                             db 0x11
                                             db 0x0E
                                             db 0x06
@@ -1093,36 +1031,8 @@ GAME_STATE_INIT:
                                             db 0x02
                                             db 0x0F
                                             db 0xFF
-GAME_STATE_CURRENT:                         
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0xFF
-                                            db 0xFE
-                                            db 0xFF
-                                            db 0x14
-                                            db 0xFF
-                                            db 0xFE
-                                            db 0xFF
-                                            db 0x54
-                                            db 0xFF
-                                            db 0xFE
+ITEMS_BY_ROOM_TABLE:                        ds 0x1d ; current state of items
+
 ITEM_DESC_POINTER:                          dw OBJECT_A_PAIR_OF_BOOTS 
                                             dw OBJECT_A_STARTER_MOTOR 
                                             dw OBJECT_A_KEY 
@@ -2860,73 +2770,73 @@ I_HAVE_TURNED_GREEN_AND_DROPPED:            db "I HAVE TURNED GREEN AND DROPPED 
 s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50:db "THE GREEN MAN AWOKE AND THROTTLED ME.\r",0
 s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77:     db "THE GUARD WOKE AND SHOT ME.\r",0
 s_WHAT_AT?_ram_7e94:                        db "WHAT AT?\r",0
-BYTE_ram_7e9e:                              db 0x06
-BYTE_ram_7e9f:                              db 0x05
-BYTE_ram_7ea0:                              db 0x01
-BYTE_ram_7ea1:                              db 0x05
+NAV0:                              db 0x06
+                                            db 0x05
+                                            db 0x01
+                                            db 0x05
                                             db 0x06
                                             db 0xFF
-BYTE_ram_7ea4:                              db 0x06
+NAV1:                              db 0x06
                                             db 0x02
                                             db 0x01
                                             db 0x01
                                             db 0x10
                                             db 0xFF
-BYTE_ram_7eaa:                              db 0x06
+NAV2:                              db 0x06
                                             db 0x02
                                             db 0x01
                                             db 0x01
                                             db 0x11
                                             db 0xFF
-BYTE_ram_7eb0:                              db 0x06
+NAV3:                              db 0x06
                                             db 0x02
                                             db 0x01
                                             db 0x01
                                             db 0x17
                                             db 0xFF
-BYTE_ram_7eb6:                              db 0x06
+NAV4:                              db 0x06
                                             db 0x02
                                             db 0x01
                                             db 0x01
                                             db 0x0E
                                             db 0xFF
-BYTE_ram_7ebc:                              db 0xFF
-BYTE_ram_7ebd:                              db 0x05
-BYTE_ram_7ebe:                              db 0x23
-BYTE_ram_7ebf:                              db 0x0C
-BYTE_ram_7ec0:                              db 0x05
+NAV5:                              db 0xFF
+NAV6:                              db 0x05
+                                            db 0x23
+                                            db 0x0C
+NAV7:                              db 0x05
                                             db 0x24
                                             db 0x0C
-BYTE_ram_7ec3:                              db 0x05
+NAV8:                              db 0x05
                                             db 0x25
                                             db 0x0C
-BYTE_ram_7ec6:                              db 0x0B
+NAV9:                              db 0x0B
                                             db 0x0E
-BYTE_ram_7ec8:                              db 0x15
-SOME_INPUT:                                 db 0xFF
-BYTE_ram_7eca:                              db 0xFF
-PTR_BYTE_ram_7e9e_ram_7ecb:                 dw BYTE_ram_7e9e 
-PTR_BYTE_ram_7ebd_ram_7ecd:                 dw BYTE_ram_7ebd 
-BYTE_ram_7ecf:                              db 0xFF
+NAV10:                              db 0x15
+TABLE_SIX:                                  db 0xFF
                                             db 0xFF
-                                            dw BYTE_ram_7ea4 
-                                            dw BYTE_ram_7ec0 
+                                            dw NAV0 
+                                            dw NAV6 
                                             db 0xFF
                                             db 0xFF
-                                            dw BYTE_ram_7eaa 
-                                            dw BYTE_ram_7ec0 
+                                            dw NAV1 
+                                            dw NAV7 
                                             db 0xFF
                                             db 0xFF
-                                            dw BYTE_ram_7eb0 
-                                            dw BYTE_ram_7ec3 
+                                            dw NAV2 
+                                            dw NAV7 
                                             db 0xFF
                                             db 0xFF
-                                            dw BYTE_ram_7eb6 
-                                            dw BYTE_ram_7ec6 
+                                            dw NAV3 
+                                            dw NAV8 
                                             db 0xFF
                                             db 0xFF
-                                            dw BYTE_ram_7ebc 
-                                            dw BYTE_ram_7ec8 
+                                            dw NAV4 
+                                            dw NAV9 
+                                            db 0xFF
+                                            db 0xFF
+                                            dw NAV5 
+                                            dw NAV10 
                                             db 0x00
                                             db 0x52
                                             db 0x4F
@@ -2935,10 +2845,76 @@ BYTE_ram_7ecf:                              db 0xFF
                                             db 0x52
                                             db 0x4F
 END_OF_DATA:                                db 0x00
+                                            endmodule
+
+DEBUG_TEXT:                                 LD A, CLR_BLACK<<3 | CLR_GREEN 
+                                            CALL SCREEN.CLEAR
+                             
+                                            LD HL,SCREEN.POS_Y
+                                            LD (HL),23
+                                            INC HL
+                                             LD (HL),23
+
+KEY_LOOP:                                   LD HL,KEYBOARD.LASTK ;getting key in A - capitalized 
+                                            LD A,(HL)
+                                            LD (HL),0x0
+                                            CP 0
+                                            JR Z,KEY_LOOP
+                                            CALL SCREEN.PRINT_CHAR
+
+                                            JP KEY_LOOP
+
 
 BASIC_RUNNER                                LD HL,0x5C3b
                                             LD (HL),0xCC
-                                            JP ENTRY_POINT
+                                            ; im2
+                                            DI  
+                                            LD A,0xBA
+                                            LD I,A
+                                            IM 2
+                                            EI
+                                            JP GAME.ENTRY_POINT
+                                            ;JP DEBUG_TEXT
+
+                                            ORG  0xBA00
+                                            DEFS 257,0xBB
+
+                                            ORG 0xBBBB
+                                            DI
+                                            PUSH AF                
+                                            PUSH BC                                               
+                                            PUSH DE                                               
+                                            PUSH IX                                               
+                                            PUSH IY                                              
+                                            PUSH HL  
+
+                                            call KEYBOARD.KEYBOARD
+
+                                            ;XOR A
+                                            ;LD (23560),A
+                                            ;LD IY,#5C3A
+                                            ;RST 56
+                                            LD a,(23560) 
+                                            LD (16385),A
+                                            LD a,(KEYBOARD.LASTK) 
+                                            LD (1638),A
+
+                                            LD a,(16384)
+                                            xor 255
+                                            ld (16384),a
+
+                                            POP HL 
+                                            POP IY
+                                            POP IX     
+                                            POP DE
+                                            POP BC                                                                                                                                        
+                                            POP AF                                                                                                                                                                                                   
+                                            EI
+                                            RET
+
+                                            include keyboard.asm
+                                            include screen.asm
+                                            include output.asm
 
                                             SAVESNA "adventurea.sna",BASIC_RUNNER
                                             SAVEBIN "adventurea.bin",23500, 9000

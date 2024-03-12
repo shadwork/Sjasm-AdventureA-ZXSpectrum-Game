@@ -495,11 +495,11 @@ LAB_ram_615c:                               LD HL,TEXT_HAVE_WITH_ME
                                             LD (VAR_ITEMS_COUNTER),0x0
                                             LD HL,ITEMS_BY_ROOM_TABLE
                                             LD C,0x0
-LAB_ram_616c:                               LD A,(HL)
-                                            CP 0xff
-                                            JR Z,LAB_ram_61b3
+LOOP_INVENTORY:                             LD A,(HL)
+                                            CP 0xff ; ff - end of items
+                                            JR Z,INVENTORY_EMPTY
                                             CP 0xfd
-                                            JR C,LAB_ram_61af
+                                            JR C,NEXT_SCAN_ITEM ; fe - in inventory
                                             LD (VAR_ITEMS_COUNTER),0x1
                                             PUSH HL
                                             LD HL,ITEM_DESC_POINTER 
@@ -513,20 +513,19 @@ LAB_ram_616c:                               LD A,(HL)
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             LD A,(HL)
-                                            CP 0xfd
-                                            JR NZ,LAB_ram_61ac
+                                            CP 0xfd ; fd - weared item
+                                            JR NZ,ITEM_NOT_WEARED
                                             PUSH HL
                                             LD HL,TEXT_WHICH_I_AM_WEARING 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JR LAB_ram_61ac
+                                            JR ITEM_NOT_WEARED
 TEXT_WHICH_I_AM_WEARING:                    db " WHICH I AM WEARING",0
-                                            CALL SCREEN.PRINT_CR
-LAB_ram_61ac:                               CALL SCREEN.PRINT_CHAR
-LAB_ram_61af:                               INC HL
+ITEM_NOT_WEARED:                            CALL SCREEN.PRINT_CR
+NEXT_SCAN_ITEM:                             INC HL
                                             INC C
-                                            JR LAB_ram_616c
-LAB_ram_61b3:                               XOR A
+                                            JR LOOP_INVENTORY
+INVENTORY_EMPTY:                            XOR A
                                             CP (VAR_ITEMS_COUNTER)
                                             JP NZ,CMD_LOOP
                                             PUSH HL

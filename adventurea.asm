@@ -3,6 +3,9 @@
                                             include defines.asm
 
                                             define COMMAND_GET 0x0D
+                                            define COMMAND_PUT 0x0E
+                                            define COMMAND_FIRE 0x0F
+
                                             define ITEM_BOOT 0x10
 
 	                                        define VAR_FLAG_CANT_DO IX-0x8
@@ -35,7 +38,7 @@ BUFFER:                                     ; clear on init 0x1e length = 30
                                             db 0x6F ; IX+2 
                                             db 0xCD ; IX+3 
                                             db 0x50 ; IX+4
-                                            db 0x72 ; IX+5 start some table 
+                                            db 0x72 ; IX+5 
                                             db 0xCD
                                             db 0x00
                                             db 0x55
@@ -245,7 +248,7 @@ NAVIGATION_LIST_END:                        LD HL,ACTION_TABLE ; command parce h
 PARSE_PROC:                                 LD A,(HL) ; pointed to DEFAULT_TABLE  or ACTION_TABLE = ff from start                      
                                             OR A
                                             JR NZ,ACTION_FOUND
-                                            CP (VAR_MORE_PARSING) ; DEFAULT_TABLE ends with 0
+                                            CP (VAR_MORE_PARSING) ; need more parsing
                                             JP NZ,PARSE_DEFAULTS 
                                             LD A,(VAR_CMD_FIRST) 
                                             CP 0xd
@@ -275,13 +278,13 @@ PRINT_CANT_GO_TEXT:                         LD HL,TEXT_I_CANT_GO
                                             POP HL
                                             JP PARSE_DEFAULTS
                                             NOP
-ACTION_FOUND:                               CP 0xff ; start value ff
+ACTION_FOUND:                               CP 0xff
                                             JR Z,CMD_FIRST_FOUND
                                             CP (VAR_CMD_FIRST)
                                             JR Z,CMD_FIRST_FOUND
 CMD_NEXT_BLOCK:                             LD DE,0x6 ; next block 
                                             ADD HL,DE
-                                            JP PARSE_PROC ; if not ff and not first command - then next 
+                                            JP PARSE_PROC ; next block 
 CMD_FIRST_FOUND:                            INC HL ; 
                                             LD A,(HL) 
                                             CP 0xff
@@ -298,11 +301,11 @@ CMD_SECOND_FOUND:                           INC HL
 NEXT_VALIDATOR:                             LD A,(BC) 
                                             CP 0xff
                                             JP Z,VALIDATION_COMPLETE
-                                            LD (VAR_PROC_ADDR),A ; first [0] = 6,5,1,5,6,ff
+                                            LD (VAR_PROC_ADDR),A ; first is procedure
                                             INC BC
                                             LD A,(BC) 
-                                            LD (VAR_PROC_PARAM_ADDR),A ; second [1] = 5
-                                            PUSH HL ; hl pointed to ACTION_DIE_GREEN
+                                            LD (VAR_PROC_PARAM_ADDR),A ; second is param
+                                            PUSH HL ; 
                                             LD HL,PROC_POINTER 
                                             LD D,0x0
                                             LD E,(VAR_PROC)
@@ -315,8 +318,8 @@ NEXT_VALIDATOR:                             LD A,(BC)
                                             JP (HL) ; jump to pointer PROC06, in BC second element
 PROC_00:                                    LD A,(VAR_PROC_PARAM_ADDR) ; verify if current room
                                             CP (VAR_CURRENT_ROOM)
-                                            JR Z,PROCS_RET
-PROC_NEXT:                                  POP HL
+                                            JR Z,PROC_SUCESS
+PROC_FAILED:                                POP HL
                                             INC HL
                                             INC HL
                                             LD (VAR_FLAG_CANT_DO),1
@@ -327,40 +330,40 @@ PROC_01:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item 
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP (VAR_CURRENT_ROOM) ; if item in current room
-                                            JR Z,PROCS_RET
+                                            JR Z,PROC_SUCESS
                                             CP 0xfd ; or item in pocket or wear
-                                            JR NC,PROCS_RET
-                                            JR PROC_NEXT
+                                            JR NC,PROC_SUCESS
+                                            JR PROC_FAILED
 PROC_02:                                    LD A,R ; randoms
                                             SUB (VAR_PROC_PARAM)
-                                            JR C,PROCS_RET
-                                            JR PROC_NEXT
+                                            JR C,PROC_SUCESS
+                                            JR PROC_FAILED
 PROC_03:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item here
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP (VAR_CURRENT_ROOM)
-                                            JR Z,PROC_NEXT
+                                            JR Z,PROC_FAILED
                                             CP 0xfd 
-                                            JR NC,PROC_NEXT
-                                            JR PROCS_RET
+                                            JR NC,PROC_FAILED
+                                            JR PROC_SUCESS
 PROC_04:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item weared
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP 0xfd
-                                            JR Z,PROCS_RET
-                                            JR PROC_NEXT
+                                            JR Z,PROC_SUCESS
+                                            JR PROC_FAILED
 PROC_05:                                    LD HL,BUFFER ; two params compare with zero
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             OR A
-                                            JR Z,PROC_NEXT
-PROCS_RET:                                  POP HL
+                                            JR Z,PROC_FAILED
+PROC_SUCESS:                                POP HL
                                             INC BC
                                             JP NEXT_VALIDATOR
 PROC_06:                                    INC BC ; three params compare with third param
@@ -370,26 +373,26 @@ PROC_06:                                    INC BC ; three params compare with t
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             CP (HL) ; compared by IX
-                                            JR NZ,PROC_NEXT ; next is triggered
-                                            JR PROCS_RET
+                                            JR NZ,PROC_FAILED ; next is triggered
+                                            JR PROC_SUCESS
 PROC_07:                                    LD HL,BUFFER ; is in table zero
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             OR A
-                                            JP NZ,PROC_NEXT
-                                            JR PROCS_RET
+                                            JP NZ,PROC_FAILED
+                                            JR PROC_SUCESS
 PROC_08:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item in inventory of weared
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP 0xfe
-                                            JR Z,PROCS_RET
+                                            JR Z,PROC_SUCESS
                                             CP 0xfd
-                                            JR Z,PROCS_RET
-                                            JP PROC_NEXT
+                                            JR Z,PROC_SUCESS
+                                            JP PROC_FAILED
 PROC_POINTER:                               dw PROC_00
                                             dw PROC_01
                                             dw PROC_02
@@ -431,39 +434,7 @@ GET_ROOM_OF_ITEM:                           LD HL,ITEMS_BY_ROOM_TABLE ; room in 
                                             RET
 READ_LINE:                                  LD HL,LINE_BUFFER 
                                             JP READ_LINE_START
-LINE_BUFFER:                                db 0xB3
-                                            db 0xB2
-                                            db 0xB8
-                                            db 0x20
-                                            db 0x09
-                                            db 0x52
-                                            db 0x45
-                                            db 0x54
-                                            db 0x0D
-                                            db 0xB0
-                                            db 0xB0
-                                            db 0xB3
-                                            db 0xB3
-                                            db 0xB0
-                                            db 0x20
-                                            db 0x09
-                                            db 0x45
-                                            db 0x4E
-                                            db 0x44
-                                            db 0x09
-                                            db 0x4D
-                                            db 0x41
-                                            db 0x49
-                                            db 0x4E
-                                            db 0x0D
-                                            db 0x1A
-                                            db 0x4C
-                                            db 0x4C
-                                            db 0x09
-                                            db 0x47
-                                            db 0x45
-                                            db 0x54
-                                            db 0x42
+LINE_BUFFER:                                ds 33
 CMD_POINTER:                                dw CMD_INVENTORY
                                             dw CMD_NOT_WEARING
                                             dw CMD_CANT_CARRY
@@ -1092,1605 +1063,10 @@ OBJECT_A_PIECE_OF_SHARP_FLINT:              db "A PIECE OF SHARP FLINT",0
 OBJECT_SOME_STONES:                         db "SOME STONES",0
 OBJECT_A_DRAWING_ON_THE_WALL:               db "A DRAWING ON THE WALL",0
 OBJECT_A_LOUDSPEAKER_WITH_DANCE_MUSIC:      db "A LOUDSPEAKER WITH DANCE MUSIC COMING OUT",0
-COMMAND_LIST:                               db "DOWN"
-                                            db 0x01
-                                            db "D   "
-                                            db 0x01
-                                            db "NORT"
-                                            db 0x02
-                                            db "N   "
-                                            db 0x02
-                                            db "SOUT"
-                                            db 0x03
-                                            db "S   "
-                                            db 0x03
-                                            db "EAST"
-                                            db 0x04
-                                            db "E   "
-                                            db 0x04
-                                            db "WEST"
-                                            db 0x05
-                                            db "W   "
-                                            db 0x05
-                                            db "GET "
-                                            db COMMAND_GET
-                                            db "PICK"
-                                            db COMMAND_GET
-                                            db "DROP"
-                                            db 0x0E
-                                            db "PUT "
-                                            db 0x0E
-                                            db "FIRE"
-                                            db 0x0F
-                                            db "SHOO"
-                                            db 0x0F
-                                            db "BOOT"
-                                            db 0x10
-                                            db "STAR"
-                                            db 0x11
-                                            db "MOTO"
-                                            db 0x11
-                                            db "KEY "
-                                            db 0x12
-                                            db "LASE"
-                                            db 0x13
-                                            db "GUN "
-                                            db 0x13
-                                            db "USED"
-                                            db 0x14
-                                            db "BAR "
-                                            db 0x15
-                                            db "BARS"
-                                            db 0x15
-                                            db "GOLD"
-                                            db 0x16
-                                            db "COIN"
-                                            db 0x16
-                                            db "MIRR"
-                                            db 0x17
-                                            db "BROK"
-                                            db 0x18
-                                            db "GLOV"
-                                            db 0x19
-                                            db "ROPE"
-                                            db 0x1A
-                                            db "FLOO"
-                                            db 0x1B
-                                            db "BOAR"
-                                            db 0x1B
-                                            db "PLAN"
-                                            db 0x1B
-                                            db "STAL"
-                                            db 0x1C
-                                            db "BLOC"
-                                            db 0x1D
-                                            db "ICE "
-                                            db 0x1D
-                                            db "POOL"
-                                            db 0x1E
-                                            db "WATE"
-                                            db 0x1E
-                                            db "LAKE"
-                                            db 0x1E
-                                            db "SLEE"
-                                            db 0x1F
-                                            db "GREE"
-                                            db 0x1F
-                                            db "MAN "
-                                            db 0x1F
-                                            db "DOOR"
-                                            db 0x20
-                                            db "OPEN"
-                                            db 0x21
-                                            db "UNLO"
-                                            db 0x21
-                                            db "WIND"
-                                            db 0x22
-                                            db "SMAL"
-                                            db 0x23
-                                            db "SPAC"
-                                            db 0x23
-                                            db "SHIP"
-                                            db 0x23
-                                            db "SECU"
-                                            db 0x24
-                                            db "FLIN"
-                                            db 0x25
-                                            db "STON"
-                                            db 0x26
-                                            db "DRAW"
-                                            db 0x27
-                                            db "HELP"
-                                            db 0x28
-                                            db "INVE"
-                                            db 0x29
-                                            db "I   "
-                                            db 0x29
-                                            db "QUIT"
-                                            db 0x2A
-                                            db "STOP"
-                                            db 0x2A
-                                            db "ABOR"
-                                            db 0x2A
-                                            db "YES "
-                                            db 0x2B
-                                            db "Y   "
-                                            db 0x2B
-                                            db "NO  "
-                                            db 0x2C
-                                            db "COMP"
-                                            db 0x2D
-                                            db "KEYB"
-                                            db 0x2D
-                                            db "TYPE"
-                                            db 0x2E
-                                            db "TURN"
-                                            db 0x2F
-                                            db "HAND"
-                                            db 0x30
-                                            db "KILL"
-                                            db 0x31
-                                            db "DANC"
-                                            db 0x32
-                                            db "WALT"
-                                            db 0x32
-                                            db "REMO"
-                                            db 0x33
-                                            db "KICK"
-                                            db 0x34
-                                            db "BREA"
-                                            db 0x34
-                                            db "HIT "
-                                            db 0x34
-                                            db "BANG"
-                                            db 0x34
-                                            db "BRIB"
-                                            db 0x35
-                                            db "USE "
-                                            db 0x36
-                                            db "WITH"
-                                            db 0x36
-                                            db "PUSH"
-                                            db 0x37
-                                            db "THRE"
-                                            db 0x38
-                                            db "3   "
-                                            db 0x38
-                                            db "TWO "
-                                            db 0x39
-                                            db "2   "
-                                            db 0x39
-                                            db "ONE "
-                                            db 0x3A
-                                            db "1   "
-                                            db 0x3A
-                                            db "MEND"
-                                            db 0x3B
-                                            db "FIX "
-                                            db 0x3B
-                                            db "REPA"
-                                            db 0x3B
-                                            db "FOUR"
-                                            db 0x3C
-                                            db "4   "
-                                            db 0x3C
-                                            db "LOOK"
-                                            db 0x3D
-                                            db "STAN"
-                                            db 0x3E
-                                            db "TREE"
-                                            db 0x3F
-                                            db "CUT "
-                                            db 0x40
-                                            db "SAW "
-                                            db 0x40
-                                            db "WEAR"
-                                            db 0x41
-                                            db "CROS"
-                                            db 0x42
-                                            db "JUMP"
-                                            db 0x43
-                                            db "RAVI"
-                                            db 0x44
-                                            db "UP  "
-                                            db 0x45
-                                            db "U   "
-                                            db 0x45
-                                            db "CLIM"
-                                            db 0x45
-                                            db "FUSE"
-                                            db 0x46
-                                            db "REDE"
-                                            db 0x47
-                                            db "R   "
-                                            db 0x47
-                                            db "MAIN"
-                                            db 0x48
-                                            db "AUX "
-                                            db 0x49
-                                            db "FIEL"
-                                            db 0x4A
-                                            db "SHIE"
-                                            db 0x4A
-                                            db 0xFF
-BYTE_ram_72b7:                              db 0xFF
-VALID_GET_BOOT:                             db 0x01 ; PROC_01
-                                            db 0x00 ; with zero
-                                            db 0xFF
-BYTE_ram_72bb:                              db 0x01
-                                            db 0x01
-                                            db 0xFF
-BYTE_ram_72be:                              db 0x01
-                                            db 0x02
-                                            db 0xFF
-BYTE_ram_72c1:                              db 0x01
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_72c4:                              db 0x01
-                                            db 0x05
-                                            db 0xFF
-BYTE_ram_72c7:                              db 0x01
-                                            db 0x06
-                                            db 0xFF
-BYTE_ram_72ca:                              db 0x01
-                                            db 0x07
-                                            db 0x03
-                                            db 0x10
-                                            db 0xFF
-BYTE_ram_72cf:                              db 0x01
-                                            db 0x08
-                                            db 0xFF
-BYTE_ram_72d2:                              db 0x01
-                                            db 0x09
-                                            db 0xFF
-BYTE_ram_72d5:                              db 0x01
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_72d8:                              db 0x01
-                                            db 0x0B
-                                            db 0xFF
-BYTE_ram_72db:                              db 0x01
-                                            db 0x0C
-                                            db 0xFF
-BYTE_ram_72de:                              db 0x01
-                                            db 0x0D
-                                            db 0xFF
-BYTE_ram_72e1:                              db 0x01
-                                            db 0x0E
-                                            db 0xFF
-BYTE_ram_72e4:                              db 0x01
-                                            db 0x18
-                                            db 0xFF
-BYTE_ram_72e7:                              db 0x01
-                                            db 0x19
-                                            db 0xFF
-BYTE_ram_72ea:                              db 0x01
-                                            db 0x07
-                                            db 0xFF
-BYTE_ram_72ed:                              db 0x00
-                                            db 0x02
-                                            db 0xFF
-BYTE_ram_72f0:                              db 0x00
-                                            db 0x02
-                                            db 0x01
-                                            db 0x0E
-                                            db 0xFF
-BYTE_ram_72f5:                              db 0x00
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_72f8:                              db 0x00
-                                            db 0x03
-                                            db 0x01
-                                            db 0x18
-                                            db 0xFF
-BYTE_ram_72fd:                              db 0x00
-                                            db 0x04
-                                            db 0xFF
-BYTE_ram_7300:                              db 0x00
-                                            db 0x06
-                                            db 0xFF
-BYTE_ram_7303:                              db 0x00
-                                            db 0x04
-                                            db 0x01
-                                            db 0x0B
-                                            db 0xFF
-BYTE_ram_7308:                              db 0x00
-                                            db 0x06
-                                            db 0x01
-                                            db 0x0B
-                                            db 0xFF
-BYTE_ram_730d:                              db 0x00
-                                            db 0x0B
-                                            db 0xFF
-BYTE_ram_7310:                              db 0x00
-                                            db 0x0B
-                                            db 0x08
-                                            db 0x0E
-                                            db 0xFF
-BYTE_ram_7315:                              db 0x01
-                                            db 0x10
-                                            db 0x01
-                                            db 0x09
-                                            db 0x04
-                                            db 0x09
-                                            db 0xFF
-BYTE_ram_731c:                              db 0x01
-                                            db 0x10
-                                            db 0x01
-                                            db 0x09
-                                            db 0xFF
-BYTE_ram_7321:                              db 0x01
-                                            db 0x10
-                                            db 0xFF
-BYTE_ram_7324:                              db 0x01
-                                            db 0x11
-                                            db 0xFF
-BYTE_ram_7327:                              db 0x01
-                                            db 0x07
-                                            db 0x03
-                                            db 0x10
-                                            db 0xFF
-BYTE_ram_732c:                              db 0x01
-                                            db 0x10
-                                            db 0xFF
-BYTE_ram_732f:                              db 0x01
-                                            db 0x10
-                                            db 0x01
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_7334:                              db 0x01
-                                            db 0x11
-                                            db 0x01
-                                            db 0x03
-                                            db 0x08
-                                            db 0x11
-                                            db 0xFF
-BYTE_ram_733b:                              db 0x01
-                                            db 0x11
-                                            db 0x01
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_7340:                              db 0x00
-                                            db 0x0E
-                                            db 0xFF
-BYTE_ram_7343:                              db 0x00
-                                            db 0x0F
-                                            db 0xFF
-BYTE_ram_7346:                              db 0x00
-                                            db 0x0F
-                                            db 0x07
-                                            db 0x07
-                                            db 0x01
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_734d:                              db 0x05
-                                            db 0x07
-                                            db 0x07
-                                            db 0x08
-                                            db 0x00
-                                            db 0x0F
-                                            db 0x01
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_7356:                              db 0x05
-                                            db 0x08
-                                            db 0x00
-                                            db 0x0F
-                                            db 0x01
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_735d:                              db 0x00
-                                            db 0x0F
-                                            db 0x08
-                                            db 0x07
-                                            db 0x05
-                                            db 0x08
-                                            db 0xFF
-BYTE_ram_7364:                              db 0x00
-                                            db 0x0F
-                                            db 0xFF
-BYTE_ram_7367:                              db 0x00
-                                            db 0x10
-                                            db 0xFF
-BYTE_ram_736a:                              db 0x00
-                                            db 0x10
-                                            db 0x01
-                                            db 0x02
-                                            db 0xFF
-BYTE_ram_736f:                              db 0x00
-                                            db 0x10
-                                            db 0x01
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_7374:                              db 0x00
-                                            db 0x13
-                                            db 0xFF
-ACTION_GET_BOOT:                            db 0x02 ; cmd CMD_CANT_CARRY
-                                            db 0x00 ; item 0 - OBJECT_A_PAIR_OF_BOOTS
-                                            db 0x0D ; CMD_OK
-BYTE_ram_737a:                              db 0x02
-                                            db 0x01
-                                            db 0x0D
-BYTE_ram_737d:                              db 0x02
-                                            db 0x02
-                                            db 0x0D
-BYTE_ram_7380:                              db 0x02
-                                            db 0x03
-                                            db 0x0D
-BYTE_ram_7383:                              db 0x02
-                                            db 0x05
-                                            db 0x0D
-BYTE_ram_7386:                              db 0x02
-                                            db 0x06
-                                            db 0x0D
-BYTE_ram_7389:                              db 0x02
-                                            db 0x07
-                                            db 0x0D
-BYTE_ram_738c:                              db 0x02
-                                            db 0x08
-                                            db 0x0D
-BYTE_ram_738f:                              db 0x02
-                                            db 0x09
-                                            db 0x0D
-BYTE_ram_7392:                              db 0x02
-                                            db 0x0A
-                                            db 0x0D
-BYTE_ram_7395:                              db 0x02
-                                            db 0x0B
-                                            db 0x0D
-BYTE_ram_7398:                              db 0x02
-                                            db 0x0C
-                                            db 0x0D
-BYTE_ram_739b:                              db 0x02
-                                            db 0x0D
-                                            db 0x0D
-BYTE_ram_739e:                              db 0x02
-                                            db 0x0E
-                                            db 0x0F
-                                            db 0x02
-                                            db 0x09
-                                            db 0x0D
-BYTE_ram_73a4:                              db 0x02
-                                            db 0x18
-                                            db 0x0D
-BYTE_ram_73a7:                              db 0x02
-                                            db 0x19
-                                            db 0x0D
-BYTE_ram_73aa:                              db 0x00
-                                            db 0x07
-BYTE_ram_73ac:                              db 0x0E
-BYTE_ram_73ad:                              db 0x03
-                                            db 0x00
-                                            db 0x0D
-BYTE_ram_73b0:                              db 0x03
-                                            db 0x01
-                                            db 0x0D
-BYTE_ram_73b3:                              db 0x03
-                                            db 0x02
-                                            db 0x0D
-BYTE_ram_73b6:                              db 0x03
-                                            db 0x03
-                                            db 0x0D
-BYTE_ram_73b9:                              db 0x03
-                                            db 0x05
-                                            db 0x0D
-BYTE_ram_73bc:                              db 0x03
-                                            db 0x06
-                                            db 0x0D
-BYTE_ram_73bf:                              db 0x03
-                                            db 0x07
-                                            db 0x0D
-BYTE_ram_73c2:                              db 0x03
-                                            db 0x08
-                                            db 0x0D
-BYTE_ram_73c5:                              db 0x03
-                                            db 0x09
-                                            db 0x0D
-BYTE_ram_73c8:                              db 0x03
-                                            db 0x0A
-                                            db 0x0D
-BYTE_ram_73cb:                              db 0x03
-                                            db 0x0B
-                                            db 0x0D
-BYTE_ram_73ce:                              db 0x03
-                                            db 0x0C
-                                            db 0x0D
-BYTE_ram_73d1:                              db 0x03
-                                            db 0x0D
-                                            db 0x0D
-BYTE_ram_73d4:                              db 0x03
-                                            db 0x0E
-                                            db 0x0D
-BYTE_ram_73d7:                              db 0x03
-                                            db 0x18
-                                            db 0x0D
-BYTE_ram_73da:                              db 0x03
-                                            db 0x19
-                                            db 0x0D
-BYTE_ram_73dd:                              db 0x05
-                                            db 0x00
-                                            db 0x07
-BYTE_ram_73e0:                              db 0x05
-                                            db 0x01
-                                            db 0x07
-BYTE_ram_73e3:                              db 0x10
-                                            db 0x0D
-                                            db 0x05
-                                            db 0x02
-                                            db 0x07
-BYTE_ram_73e8:                              db 0x05
-                                            db 0x03
-                                            db 0x07
-BYTE_ram_73eb:                              db 0x10
-                                            db 0x0A
-                                            db 0x05
-                                            db 0x02
-                                            db 0x07
-BYTE_ram_73f0:                              db 0x04
-                                            db 0x00
-                                            db 0x0D
-BYTE_ram_73f3:                              db 0x01
-                                            db 0x00
-                                            db 0x0D
-BYTE_ram_73f6:                              db 0x05
-                                            db 0x03
-                                            db 0x07
-BYTE_ram_73f9:                              db 0x08
-                                            db 0x06
-                                            db 0x06
-BYTE_ram_73fc:                              db 0x08
-                                            db 0x04
-                                            db 0x11
-                                            db 0x0B
-                                            db 0x10
-                                            db 0x0C
-                                            db 0x06
-BYTE_ram_7403:                              db 0x05
-                                            db 0x04
-                                            db 0x0C
-BYTE_ram_7406:                              db 0x08
-                                            db 0x0C
-                                            db 0x03
-                                            db 0x0E
-                                            db 0x0B
-                                            db 0x0E
-                                            db 0x0F
-                                            db 0x02
-                                            db 0x07
-                                            db 0x06
-BYTE_ram_7410:                              db 0x02
-                                            db 0x10
-                                            db 0x0B
-                                            db 0x10
-                                            db 0x05
-                                            db 0x05
-                                            db 0x0F
-                                            db 0x05
-                                            db 0x0A
-                                            db 0x0A
-                                            db 0x06
-                                            db 0x07
-BYTE_ram_741c:                              db 0x02
-                                            db 0x10
-                                            db 0x0B
-                                            db 0x10
-                                            db 0x0D
-BYTE_ram_7421:                              db 0x03
-                                            db 0x11
-                                            db 0x0D
-BYTE_ram_7424:                              db 0x02
-                                            db 0x07
-                                            db 0x0D
-BYTE_ram_7427:                              db 0x02
-                                            db 0x08
-                                            db 0x0D
-BYTE_ram_742a:                              db 0x03
-                                            db 0x07
-                                            db 0x0D
-BYTE_ram_742d:                              db 0x03
-                                            db 0x08
-                                            db 0x0D
-BYTE_ram_7430:                              db 0x05
-                                            db 0x03
-                                            db 0x07
-BYTE_ram_7433:                              db 0x11
-                                            db 0x10
-                                            db 0x0B
-                                            db 0x07
-                                            db 0x05
-                                            db 0x06
-                                            db 0x05
-                                            db 0x07
-                                            db 0x07
-BYTE_ram_743c:                              db 0x05
-                                            db 0x26
-                                            db 0x07
-BYTE_ram_743f:                              db 0x11
-                                            db 0x11
-                                            db 0x05
-                                            db 0x06
-                                            db 0x07
-BYTE_ram_7444:                              db 0x05
-                                            db 0x08
-                                            db 0x07
-BYTE_ram_7447:                              db 0x09
-                                            db 0x07
-                                            db 0x05
-                                            db 0x09
-                                            db 0x07
-BYTE_ram_744c:                              db 0x09
-                                            db 0x08
-                                            db 0x05
-                                            db 0x09
-                                            db 0x07
-BYTE_ram_7451:                              db 0x05
-                                            db 0x0A
-                                            db 0x07
-BYTE_ram_7454:                              db 0x08
-                                            db 0x10
-                                            db 0x0F
-                                            db 0x02
-                                            db 0x09
-                                            db 0x06
-BYTE_ram_745a:                              db 0x05
-                                            db 0x0B
-                                            db 0x08
-                                            db 0x13
-                                            db 0x06
-BYTE_ram_745f:                              db 0x08
-                                            db 0x12
-                                            db 0x06
-BYTE_ram_7462:                              db 0x11
-                                            db 0x17
-                                            db 0x0D
-BYTE_ram_7465:                              db 0x05
-                                            db 0x0C
-                                            db 0x07
-BYTE_ram_7468:                              db 0x0B
-                                            db 0x14
-                                            db 0x10
-                                            db 0x05
-                                            db 0x06
-ACTION_TABLE:                               db COMMAND_GET
-                                            db ITEM_BOOT
-                                            dw VALID_GET_BOOT 
-                                            dw ACTION_GET_BOOT 
-                                            db COMMAND_GET
-                                            db 0x11
-                                            dw BYTE_ram_72bb 
-                                            dw BYTE_ram_737a 
-                                            db COMMAND_GET
-                                            db 0x12
-                                            dw BYTE_ram_72be 
-                                            dw BYTE_ram_737d 
-                                            db COMMAND_GET
-                                            db 0x13
-                                            dw BYTE_ram_72c1 
-                                            dw BYTE_ram_7380 
-                                            db COMMAND_GET
-                                            db 0x15
-                                            dw BYTE_ram_72c4 
-                                            dw BYTE_ram_7383 
-                                            db COMMAND_GET
-                                            db 0x16
-                                            dw BYTE_ram_72c7 
-                                            dw BYTE_ram_7386 
-                                            db COMMAND_GET
-                                            db 0x17
-                                            dw BYTE_ram_72ca 
-                                            dw BYTE_ram_7389 
-                                            db COMMAND_GET
-                                            db 0x17
-                                            dw BYTE_ram_72cf 
-                                            dw BYTE_ram_738c 
-                                            db COMMAND_GET
-                                            db 0x18
-                                            dw BYTE_ram_72cf 
-                                            dw BYTE_ram_738c 
-                                            db COMMAND_GET
-                                            db 0x19
-                                            dw BYTE_ram_72d2 
-                                            dw BYTE_ram_738f 
-                                            db COMMAND_GET
-                                            db 0x1A
-                                            dw BYTE_ram_72d5 
-                                            dw BYTE_ram_7392 
-                                            db COMMAND_GET
-                                            db 0x1B
-                                            dw BYTE_ram_72d8 
-                                            dw BYTE_ram_7395 
-                                            db COMMAND_GET
-                                            db 0x1B
-                                            dw BYTE_ram_72db 
-                                            dw BYTE_ram_7398 
-                                            db COMMAND_GET
-                                            db 0x18
-                                            dw BYTE_ram_72db 
-                                            dw BYTE_ram_7398 
-                                            db COMMAND_GET
-                                            db 0x1C
-                                            dw BYTE_ram_72de 
-                                            dw BYTE_ram_739b 
-                                            db COMMAND_GET
-                                            db 0x1D
-                                            dw BYTE_ram_72e1 
-                                            dw BYTE_ram_739e 
-                                            db COMMAND_GET
-                                            db 0x25
-                                            dw BYTE_ram_72e4 
-                                            dw BYTE_ram_73a4 
-                                            db COMMAND_GET
-                                            db 0x26
-                                            dw BYTE_ram_72e7 
-                                            dw BYTE_ram_73a7 
-                                            db 0x29
-                                            db 0xFF
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_73aa
-                                            db 0x2A
-                                            db 0xFF
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_73ac 
-                                            db 0x0E
-                                            db ITEM_BOOT
-                                            dw VALID_GET_BOOT 
-                                            dw BYTE_ram_73ad 
-                                            db 0x0E
-                                            db 0x11
-                                            dw BYTE_ram_72bb 
-                                            dw BYTE_ram_73b0 
-                                            db 0x0E
-                                            db 0x12
-                                            dw BYTE_ram_72be 
-                                            dw BYTE_ram_73b3 
-                                            db 0x0E
-                                            db 0x13
-                                            dw BYTE_ram_72c1 
-                                            dw BYTE_ram_73b6 
-                                            db 0x0E
-                                            db 0x15
-                                            dw BYTE_ram_72c4 
-                                            dw BYTE_ram_73b9 
-                                            db 0x0E
-                                            db 0x16
-                                            dw BYTE_ram_72c7 
-                                            dw BYTE_ram_73bc 
-                                            db 0x0E
-                                            db 0x17
-                                            dw BYTE_ram_72ea 
-                                            dw BYTE_ram_73bf 
-                                            db 0x0E
-                                            db 0x17
-                                            dw BYTE_ram_72cf 
-                                            dw BYTE_ram_73c2 
-                                            db 0x0E
-                                            db 0x18
-                                            dw BYTE_ram_72cf 
-                                            dw BYTE_ram_73c2 
-                                            db 0x0E
-                                            db 0x19
-                                            dw BYTE_ram_72d2 
-                                            dw BYTE_ram_73c5 
-                                            db 0x0E
-                                            db 0x1A
-                                            dw BYTE_ram_72d5 
-                                            dw BYTE_ram_73c8 
-                                            db 0x0E
-                                            db 0x1B
-                                            dw BYTE_ram_72d8 
-                                            dw BYTE_ram_73cb 
-                                            db 0x0E
-                                            db 0x1B
-                                            dw BYTE_ram_72db 
-                                            dw BYTE_ram_73ce 
-                                            db 0x0F
-                                            db 0x18
-                                            dw BYTE_ram_72db 
-                                            dw BYTE_ram_73ce 
-                                            db 0x0E
-                                            db 0x1C
-                                            dw BYTE_ram_72de 
-                                            dw BYTE_ram_73d1 
-                                            db 0x0E
-                                            db 0x1D
-                                            dw BYTE_ram_72e1 
-                                            dw BYTE_ram_73d4 
-                                            db 0x0E
-                                            db 0x25
-                                            dw BYTE_ram_72e4 
-                                            dw BYTE_ram_73d7 
-                                            db 0x0E
-                                            db 0x26
-                                            dw BYTE_ram_72e7 
-                                            dw BYTE_ram_73da 
-                                            db 0x3D
-                                            db 0x27
-                                            dw BYTE_ram_72ed
-                                            dw BYTE_ram_73dd 
-                                            db 0x34
-                                            db 0x1C
-                                            dw BYTE_ram_72ed
-                                            dw BYTE_ram_73e0 
-                                            db 0x36
-                                            db 0x1D
-                                            dw BYTE_ram_72f0
-                                            dw BYTE_ram_73e3 
-                                            db 0x40
-                                            db 0x1A
-                                            dw BYTE_ram_72f5
-                                            dw BYTE_ram_73e8 
-                                            db 0x36
-                                            db 0x25
-                                            dw BYTE_ram_72f8
-                                            dw BYTE_ram_73eb 
-                                            db 0x41
-                                            db ITEM_BOOT
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_73f0 
-                                            db 0x33
-                                            db ITEM_BOOT
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_73f3 
-                                            db 0x42
-                                            db 0x44
-                                            dw BYTE_ram_72fd
-                                            dw BYTE_ram_73f6 
-                                            db 0x42
-                                            db 0x44
-                                            dw BYTE_ram_7300
-                                            dw BYTE_ram_73f6 
-                                            db 0x36
-                                            db 0x1B
-                                            dw BYTE_ram_7303
-                                            dw BYTE_ram_73f9 
-                                            db 0x36
-                                            db 0x1B
-                                            dw BYTE_ram_7308
-                                            dw BYTE_ram_73fc 
-                                            db 0x43
-                                            db 0x44
-                                            dw BYTE_ram_7303
-                                            dw BYTE_ram_7403 
-                                            db 0x43
-                                            db 0x44
-                                            dw BYTE_ram_7300
-                                            dw BYTE_ram_7403 
-                                            db 0x01
-                                            db 0xFF
-                                            dw BYTE_ram_730d
-                                            dw BYTE_ram_73f6 
-                                            db 0x36
-                                            db 0x1D
-                                            dw BYTE_ram_7310
-                                            dw BYTE_ram_7406 
-                                            db COMMAND_GET
-                                            db 0x1F
-                                            dw BYTE_ram_7315 
-                                            dw BYTE_ram_7410 
-                                            db COMMAND_GET
-                                            db 0x1F
-                                            dw BYTE_ram_731c 
-                                            dw BYTE_ram_741c 
-                                            db COMMAND_GET
-                                            db 0x1F
-                                            dw BYTE_ram_7321 
-                                            dw BYTE_ram_7410 
-                                            db 0x0E
-                                            db 0x1F
-                                            dw BYTE_ram_7324 
-                                            dw BYTE_ram_7421 
-                                            db COMMAND_GET
-                                            db 0x17
-                                            dw BYTE_ram_7327 
-                                            dw BYTE_ram_7424 
-                                            db COMMAND_GET
-                                            db 0x18
-                                            dw BYTE_ram_72cf 
-                                            dw BYTE_ram_7427 
-                                            db 0x0E
-                                            db 0x17
-                                            dw BYTE_ram_72ea 
-                                            dw BYTE_ram_742a 
-                                            db 0x0E
-                                            db 0x18
-                                            dw BYTE_ram_72cf 
-                                            dw BYTE_ram_742d 
-                                            db 0x31
-                                            db 0x1F
-                                            dw BYTE_ram_732c 
-                                            dw BYTE_ram_7430 
-                                            db 0x31
-                                            db 0x1F
-                                            dw BYTE_ram_7324 
-                                            dw BYTE_ram_7430 
-                                            db 0x36
-                                            db 0x13
-                                            dw BYTE_ram_732f 
-                                            dw BYTE_ram_7433 
-                                            db 0x36
-                                            db 0x13
-                                            dw BYTE_ram_7334 
-                                            dw BYTE_ram_743c 
-                                            db 0x36
-                                            db 0x13
-                                            dw BYTE_ram_733b 
-                                            dw BYTE_ram_743f 
-                                            db 0x2E
-                                            db 0x28
-                                            dw BYTE_ram_7340
-                                            dw BYTE_ram_7444 
-                                            db 0x0F
-                                            db 0x13
-                                            dw BYTE_ram_7343
-                                            dw BYTE_ram_743c 
-                                            db 0x4A
-                                            db 0xFF
-                                            dw BYTE_ram_7346
-                                            dw BYTE_ram_7447 
-                                            db 0x4A
-                                            db 0xFF
-                                            dw BYTE_ram_734d 
-                                            dw BYTE_ram_744c 
-                                            db 0x4A
-                                            db 0xFF
-                                            dw BYTE_ram_7356 
-                                            dw BYTE_ram_7451 
-                                            db 0x32
-                                            db 0xFF
-                                            dw BYTE_ram_735d
-                                            dw BYTE_ram_7454 
-                                            db 0x32
-                                            db 0xFF
-                                            dw BYTE_ram_7364
-                                            dw BYTE_ram_745a 
-                                            db 0x21
-                                            db 0x20
-                                            dw BYTE_ram_7367
-                                            dw BYTE_ram_7430 
-                                            db 0x36
-                                            db 0x12
-                                            dw BYTE_ram_736a
-                                            dw BYTE_ram_745f 
-                                            db 0x31
-                                            db 0x24
-                                            dw BYTE_ram_736f
-                                            dw BYTE_ram_7462 
-                                            db 0x3D
-                                            db 0x45
-                                            dw BYTE_ram_7374
-                                            dw BYTE_ram_7465 
-                                            db 0x34
-                                            db 0x15
-                                            dw BYTE_ram_7374
-                                            dw BYTE_ram_7468 
-                                            db 0x45
-                                            db 0xFF
-                                            dw BYTE_ram_775c
-                                            dw BYTE_ram_77ff 
-                                            db 0x35
-                                            db 0x24
-                                            dw BYTE_ram_7761
-                                            dw BYTE_ram_7804 
-                                            db 0x36
-                                            db 0x16
-                                            dw BYTE_ram_7764
-                                            dw BYTE_ram_7807 
-                                            db 0x20
-                                            db 0xFF
-                                            dw BYTE_ram_7769
-                                            dw BYTE_ram_780c 
-                                            db 0x3D
-                                            db 0x1E
-                                            dw BYTE_ram_776e
-                                            dw BYTE_ram_7811 
-                                            db COMMAND_GET
-                                            db 0x16
-                                            dw BYTE_ram_776e
-                                            dw BYTE_ram_7814 
-                                            db 0x1E
-                                            db 0xFF
-                                            dw BYTE_ram_7773
-                                            dw BYTE_ram_781a 
-                                            db 0x1E
-                                            db 0xFF
-                                            dw BYTE_ram_777c
-                                            dw BYTE_ram_7817 
-                                            db 0x1E
-                                            db 0xFF
-                                            dw BYTE_ram_776e
-                                            dw BYTE_ram_781f 
-                                            db 0x21
-                                            db 0x20
-                                            dw BYTE_ram_7783
-                                            dw BYTE_ram_7822 
-                                            db 0x37
-                                            db 0x38
-                                            dw BYTE_ram_7786
-                                            dw BYTE_ram_7825 
-                                            db 0x37
-                                            db 0x38
-                                            dw BYTE_ram_778d
-                                            dw BYTE_ram_7829 
-                                            db 0x37
-                                            db 0x39
-                                            dw BYTE_ram_7792
-                                            dw BYTE_ram_7830 
-                                            db 0x37
-                                            db 0x39
-                                            dw BYTE_ram_778d
-                                            dw BYTE_ram_7829 
-                                            db 0x37
-                                            db 0x3A
-                                            dw BYTE_ram_779a
-                                            dw BYTE_ram_7834 
-                                            db 0x37
-                                            db 0x3A
-                                            dw BYTE_ram_778d
-                                            dw BYTE_ram_7829 
-                                            db 0x3B
-                                            db 0x46
-                                            dw BYTE_ram_77a2
-                                            dw BYTE_ram_783a 
-                                            db 0x36
-                                            db 0x15
-                                            dw BYTE_ram_77a7
-                                            dw BYTE_ram_783d 
-                                            db 0x3D
-                                            db 0xFF
-                                            dw BYTE_ram_77ae
-                                            dw BYTE_ram_7842 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77b1
-                                            dw BYTE_ram_7845 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77b4
-                                            dw BYTE_ram_7848 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77b7
-                                            dw BYTE_ram_784b 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77ba
-                                            dw BYTE_ram_784e 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77bd
-                                            dw BYTE_ram_784e 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77c0
-                                            dw BYTE_ram_784e 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77c3
-                                            dw BYTE_ram_784e 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_77c6
-                                            dw BYTE_ram_7845 
-                                            db 0x3D
-                                            db 0x45
-                                            dw BYTE_ram_77cb 
-                                            dw BYTE_ram_7851 
-                                            db 0x05
-                                            db 0xFF
-                                            dw BYTE_ram_77d0
-                                            dw BYTE_ram_7854 
-                                            db 0x02
-                                            db 0xFF
-                                            dw BYTE_ram_77b4
-                                            dw BYTE_ram_7854 
-                                            db 0x41
-                                            db 0x19
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_785a 
-                                            db 0x33
-                                            db 0x19
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_785d 
-                                            db 0x47
-                                            db 0xFF
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_7860 
-                                            db 0x01
-                                            db 0xFF
-                                            dw BYTE_ram_77d3
-                                            dw BYTE_ram_7861 
-                                            db 0x36
-                                            db 0x1A
-                                            dw BYTE_ram_77d6
-                                            dw BYTE_ram_7864 
-                                            db 0x43
-                                            db 0xFF
-                                            dw BYTE_ram_77d3
-                                            dw BYTE_ram_786b 
-                                            db 0x45
-                                            db 0x1A
-                                            dw BYTE_ram_77db
-                                            dw BYTE_ram_786e 
-                                            db 0x23
-                                            db 0xFF
-                                            dw BYTE_ram_77e0 
-                                            dw BYTE_ram_7871 
-                                            db 0x37
-                                            db 0x48
-                                            dw BYTE_ram_77e3
-                                            dw BYTE_ram_7874 
-                                            db 0x37
-                                            db 0x49
-                                            dw BYTE_ram_77e3
-                                            dw BYTE_ram_7877 
-                                            db 0x37
-                                            db 0x38
-                                            dw BYTE_ram_77e8
-                                            dw BYTE_ram_787c 
-                                            db 0x37
-                                            db 0x39
-                                            dw BYTE_ram_77e8
-                                            dw BYTE_ram_787c 
-                                            db 0x37
-                                            db 0x3C
-                                            dw BYTE_ram_77ed
-                                            dw BYTE_ram_787f 
-                                            db 0x37
-                                            db 0x3A
-                                            dw BYTE_ram_77f5
-                                            dw BYTE_ram_7887 
-                                            db 0x37
-                                            db 0x3A
-                                            dw BYTE_ram_77ed
-                                            dw BYTE_ram_7882 
-                                            db 0x28
-                                            db 0xFF
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_788e 
-                                            db 0x3D
-                                            db 0xFF
-                                            dw BYTE_ram_72b7 
-                                            dw BYTE_ram_7891 
-                                            db 0x00
-BYTE_ram_775c:                              db 0x00
-                                            db 0x13
-                                            db 0x01
-                                            db 0x15
-                                            db 0xFF
-BYTE_ram_7761:                              db 0x00
-                                            db 0x13
-                                            db 0xFF
-BYTE_ram_7764:                              db 0x00
-                                            db 0x13
-                                            db 0x01
-                                            db 0x06
-                                            db 0xFF
-BYTE_ram_7769:                              db 0x00
-                                            db 0x13
-                                            db 0x01
-                                            db 0x13
-                                            db 0xFF
-BYTE_ram_776e:                              db 0x00
-                                            db 0x04
-                                            db 0x03
-                                            db 0x06
-                                            db 0xFF
-BYTE_ram_7773:                              db 0x00
-                                            db 0x04
-                                            db 0x03
-                                            db 0x06
-                                            db 0x04
-                                            db 0x00
-                                            db 0x01
-                                            db 0x00
-                                            db 0xFF
-BYTE_ram_777c:                              db 0x00
-                                            db 0x04
-                                            db 0x03
-                                            db 0x06
-                                            db 0x01
-                                            db 0x00
-                                            db 0xFF
-BYTE_ram_7783:                              db 0x00
-                                            db 0x0D
-                                            db 0xFF
-BYTE_ram_7786:                              db 0x00
-                                            db 0x12
-                                            db 0x07
-                                            db 0x09
-                                            db 0x07
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_778d:                              db 0x00
-                                            db 0x12
-                                            db 0x07
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_7792:                              db 0x00
-                                            db 0x12
-                                            db 0x06
-                                            db 0x09
-                                            db 0x01
-                                            db 0x07
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_779a:                              db 0x00
-                                            db 0x12
-                                            db 0x06
-                                            db 0x09
-                                            db 0x02
-                                            db 0x07
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_77a2:                              db 0x00
-                                            db 0x12
-                                            db 0x05
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_77a7:                              db 0x00
-                                            db 0x12
-                                            db 0x01
-                                            db 0x05
-                                            db 0x05
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_77ae:                              db 0x00
-                                            db 0x0B
-                                            db 0xFF
-BYTE_ram_77b1:                              db 0x00
-                                            db 0x11
-                                            db 0xFF
-BYTE_ram_77b4:                              db 0x00
-                                            db 0x0F
-                                            db 0xFF
-BYTE_ram_77b7:                              db 0x00
-                                            db 0x0E
-                                            db 0xFF
-BYTE_ram_77ba:                              db 0x00
-                                            db 0x07
-                                            db 0xFF
-BYTE_ram_77bd:                              db 0x00
-                                            db 0x08
-                                            db 0xFF
-BYTE_ram_77c0:                              db 0x00
-                                            db 0x09
-                                            db 0xFF
-BYTE_ram_77c3:                              db 0x00
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_77c6:                              db 0x00
-                                            db 0x14
-                                            db 0x05
-                                            db 0x0C
-                                            db 0xFF
-BYTE_ram_77cb:                              db 0x05
-                                            db 0x0B
-                                            db 0x00
-                                            db 0x0C
-                                            db 0xFF
-BYTE_ram_77d0:                              db 0x00
-                                            db 0x0D
-                                            db 0xFF
-BYTE_ram_77d3:                              db 0x00
-                                            db 0x01
-                                            db 0xFF
-BYTE_ram_77d6:                              db 0x00
-                                            db 0x01
-                                            db 0x08
-                                            db 0x0A
-                                            db 0xFF
-BYTE_ram_77db:                              db 0x00
-                                            db 0x0C
-                                            db 0x05
-                                            db 0x0B
-                                            db 0xFF
-BYTE_ram_77e0:                              db 0x01
-                                            db 0x16
-                                            db 0xFF
-BYTE_ram_77e3:                              db 0x00
-                                            db 0x14
-                                            db 0x01
-                                            db 0x01
-                                            db 0xFF
-BYTE_ram_77e8:                              db 0x00
-                                            db 0x14
-                                            db 0x05
-                                            db 0x0C
-                                            db 0xFF
-BYTE_ram_77ed:                              db 0x00
-                                            db 0x14
-                                            db 0x05
-                                            db 0x0C
-                                            db 0x06
-                                            db 0x09
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_77f5:                              db 0x00
-                                            db 0x14
-                                            db 0x05
-                                            db 0x0C
-                                            db 0x04
-                                            db 0x00
-                                            db 0x06
-                                            db 0x09
-                                            db 0x03
-                                            db 0xFF
-BYTE_ram_77ff:                              db 0x08
-                                            db 0x0C
-                                            db 0x0B
-                                            db 0x14
-                                            db 0x06
-BYTE_ram_7804:                              db 0x05
-                                            db 0x0D
-                                            db 0x07
-BYTE_ram_7807:                              db 0x0B
-                                            db 0x12
-                                            db 0x11
-                                            db 0x06
-                                            db 0x06
-BYTE_ram_780c:                              db 0x08
-                                            db 0x0C
-                                            db 0x0B
-                                            db 0x12
-                                            db 0x06
-BYTE_ram_7811:                              db 0x05
-                                            db 0x0E
-                                            db 0x07
-BYTE_ram_7814:                              db 0x05
-                                            db 0x01
-                                            db 0x07
-BYTE_ram_7817:                              db 0x05
-                                            db 0x0F
-                                            db 0x07
-BYTE_ram_781a:                              db 0x10
-                                            db 0x06
-                                            db 0x02
-                                            db 0x06
-                                            db 0x0D
-BYTE_ram_781f:                              db 0x05
-                                            db 0x0F
-                                            db 0x07
-BYTE_ram_7822:                              db 0x08
-                                            db 0x0E
-                                            db 0x06
-BYTE_ram_7825:                              db 0x0F
-                                            db 0x09
-                                            db 0x01
-                                            db 0x0D
-BYTE_ram_7829:                              db 0x05
-                                            db 0x10
-                                            db 0x0A
-                                            db 0x09
-                                            db 0x09
-                                            db 0x0A
-                                            db 0x07
-BYTE_ram_7830:                              db 0x0F
-                                            db 0x09
-                                            db 0x02
-                                            db 0x0D
-BYTE_ram_7834:                              db 0x05
-                                            db 0x11
-                                            db 0x0F
-                                            db 0x09
-                                            db 0x03
-                                            db 0x07
-BYTE_ram_783a:                              db 0x05
-                                            db 0x0D
-                                            db 0x07
-BYTE_ram_783d:                              db 0x0A
-                                            db 0x0A
-                                            db 0x11
-                                            db 0x05
-                                            db 0x0D
-BYTE_ram_7842:                              db 0x05
-                                            db 0x18
-                                            db 0x07
-BYTE_ram_7845:                              db 0x05
-                                            db 0x13
-                                            db 0x07
-BYTE_ram_7848:                              db 0x05
-                                            db 0x14
-                                            db 0x07
-BYTE_ram_784b:                              db 0x05
-                                            db 0x15
-                                            db 0x07
-BYTE_ram_784e:                              db 0x05
-                                            db 0x16
-                                            db 0x07
-BYTE_ram_7851:                              db 0x05
-                                            db 0x1A
-                                            db 0x07
-BYTE_ram_7854:                              db 0x08
-                                            db 0x0C
-                                            db 0x0F
-                                            db 0x02
-                                            db 0x07
-                                            db 0x06
-BYTE_ram_785a:                              db 0x04
-                                            db 0x09
-                                            db 0x0D
-BYTE_ram_785d:                              db 0x01
-                                            db 0x09
-                                            db 0x0D
-BYTE_ram_7860:                              db 0x06
-BYTE_ram_7861:                              db 0x05
-                                            db 0x03
-                                            db 0x07
-BYTE_ram_7864:                              db 0x09
-                                            db 0x0B
-                                            db 0x03
-                                            db 0x0A
-                                            db 0x08
-                                            db 0x0C
-                                            db 0x06
-BYTE_ram_786b:                              db 0x05
-                                            db 0x1B
-                                            db 0x07
-BYTE_ram_786e:                              db 0x08
-                                            db 0x01
-                                            db 0x06
-BYTE_ram_7871:                              db 0x08
-                                            db 0x14
-                                            db 0x06
-BYTE_ram_7874:                              db 0x05
-                                            db 0x1C
-                                            db 0x0C
-BYTE_ram_7877:                              db 0x09
-                                            db 0x0C
-                                            db 0x05
-                                            db 0x1D
-                                            db 0x07
-BYTE_ram_787c:                              db 0x05
-                                            db 0x19
-                                            db 0x0C
-BYTE_ram_787f:                              db 0x05
-                                            db 0x1E
-                                            db 0x0E
-BYTE_ram_7882:                              db 0x05
-                                            db 0x1F
-                                            db 0x05
-                                            db 0x20
-                                            db 0x0C
-BYTE_ram_7887:                              db 0x05
-                                            db 0x1F
-                                            db 0x05
-                                            db 0x21
-                                            db 0x05
-                                            db 0x1E
-                                            db 0x0E
-BYTE_ram_788e:                              db 0x05
-                                            db 0x17
-                                            db 0x07
-BYTE_ram_7891:                              db 0x05
-                                            db 0x12
-                                            db 0x07
-ROOM_NAV_POINTER:                           dw ROOM_00_NAV 
-                                            dw ROOM_01_NAV 
-                                            dw ROOM_02_NAV 
-                                            dw ROOM_03_NAV 
-                                            dw ROOM_04_NAV 
-                                            dw ROOM_05_NAV 
-                                            dw ROOM_06_NAV 
-                                            dw ROOM_07_NAV 
-                                            dw ROOM_08_NAV 
-                                            dw ROOM_09_NAV 
-                                            dw ROOM_10_NAV 
-                                            dw ROOM_11_NAV 
-                                            dw ROOM_12_NAV 
-                                            dw ROOM_13_NAV 
-                                            dw ROOM_14_NAV 
-                                            dw ROOM_15_NAV 
-                                            dw ROOM_16_NAV 
-                                            dw ROOM_17_NAV 
-                                            dw ROOM_18_NAV 
-                                            dw ROOM_19_NAV 
-                                            dw ROOM_19_NAV 
-ROOM_00_NAV:                              db 0x01 ; cmd "DOWN"
-                                            db 0x03 ; to room 3
-                                            db 0x04 ; cmd "EAST"
-                                            db 0x02 ; to room 2
-                                            db 0x05 ; "WEST"
-                                            db 0x01 ; to room 1
-                                            db 0xFF
-ROOM_01_NAV:                              db 0x04 ; cmd "EAST"
-                                            db 0x00 ;  to room 0
-                                            db 0xFF
-ROOM_02_NAV:                              db 0x02
-                                            db 0x07
-                                            db 0x05
-                                            db 0x00
-                                            db 0xFF
-ROOM_03_NAV:                              db 0x03
-                                            db 0x04
-                                            db 0x05
-                                            db 0x00
-                                            db 0xFF
-ROOM_04_NAV:                              db 0x02
-                                            db 0x03
-                                            db 0x04
-                                            db 0x05
-                                            db 0xFF
-ROOM_05_NAV:                              db 0x02
-                                            db 0x04
-                                            db 0xFF
-ROOM_06_NAV:                              db 0xFF
-ROOM_07_NAV:                              db 0x01
-                                            db 0x07
-                                            db 0x02
-                                            db 0x08
-                                            db 0x03
-                                            db 0x07
-                                            db 0x04
-                                            db 0x07
-                                            db 0x05
-                                            db 0x07
-                                            db 0xFF
-ROOM_08_NAV:                              db 0x01
-                                            db 0x07
-                                            db 0x02
-                                            db 0x07
-                                            db 0x03
-                                            db 0x09
-                                            db 0x04
-                                            db 0x07
-                                            db 0x05
-                                            db 0x07
-                                            db 0xFF
-ROOM_09_NAV:                              db 0x01
-                                            db 0x07
-                                            db 0x02
-                                            db 0x07
-                                            db 0x03
-                                            db 0x07
-                                            db 0x04
-                                            db 0x0A
-                                            db 0x05
-                                            db 0x07
-                                            db 0xFF
-ROOM_10_NAV:                              db 0x01
-                                            db 0x07
-                                            db 0x02
-                                            db 0x02
-                                            db 0x03
-                                            db 0x07
-                                            db 0x04
-                                            db 0x07
-                                            db 0x05
-                                            db 0x0B
-                                            db 0xFF
-ROOM_11_NAV:                              db 0x04
-                                            db 0x07
-                                            db 0xFF
-ROOM_12_NAV:                              db 0x03
-                                            db 0x0F
-                                            db 0x04
-                                            db 0x0D
-                                            db 0x05
-                                            db 0x13
-                                            db 0xFF
-ROOM_13_NAV:                              db 0xFF
-ROOM_14_NAV:                              db 0x05
-                                            db 0x0D
-                                            db 0xFF
-ROOM_15_NAV:                              db 0x04
-                                            db 0x13
-                                            db 0x05
-                                            db 0x13
-                                            db 0xFF
-ROOM_16_NAV:                              db 0x02
-                                            db 0x0F
-                                            db 0x03
-                                            db 0x13
-                                            db 0x04
-                                            db 0x11
-                                            db 0xFF
-ROOM_17_NAV:                              db 0x05
-                                            db 0x10
-                                            db 0xFF
-ROOM_18_NAV:                              db 0x04
-                                            db 0x10
-                                            db 0xFF
-ROOM_19_NAV:                              db 0xFF
+
+COMMAND_LIST:                               include commands.asm
+ROOM_NAV_POINTER:                           include navigations.asm
+ACTION_TABLE:                               include actions.asm
 ACTION_POINTER:                             dw IT_SHOWS_A_MAN_CLIMBING 
                                             dw HOW_I_CANT_REACH 
                                             dw IT_HAS_FALLEN_TO_THE_FLOOR 
@@ -2773,43 +1149,43 @@ s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50:db "THE GREEN MAN AWOKE AND THROTTLE
 s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77:     db "THE GUARD WOKE AND SHOT ME.\r",0
 s_WHAT_AT?_ram_7e94:                        db "WHAT AT?\r",0
 VALIDATOR0:                                 db 0x06 ; PROC6(5,1)
-                                            db 0x05 ; point to item 5 "A METAL BAR"
-                                            db 0x01 ; compared with index (IX+1)
-                                            db 0x05 ; PROC6(6)
-                                            db 0x06 ; point to item 6 "A GOLD COIN"
+                                            db 0x05 ; IX+5
+                                            db 0x01 ; ==1
+                                            db 0x05 ; PROC5(6)
+                                            db 0x06 ; IX+6!=0
                                             db 0xFF
-VALIDATOR1:                                       db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; "A KEY"
-                                            db 0x01 ; +1
+VALIDATOR1:                                 db 0x06 ; PROC6(2,1)
+                                            db 0x02 ; IX+2
+                                            db 0x01 ; ==1
                                             db 0x01 ; PROC1(0x10) is item available
                                             db 0x10 ; OBJECT_A_SMALL_GREEN_MAN_SLEEPING
                                             db 0xFF
 VALIDATOR2:                                 db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; "A KEY"
-                                            db 0x01 ; +1
-                                            db 0x01 ; PROC1(0x11)
+                                            db 0x02 ; IX+2
+                                            db 0x01 ; ==1
+                                            db 0x01 ; PROC1(0x11) is item available
                                             db 0x11 ; OBJECT_A_SLEEPING_GREEN_MAN
                                             db 0xFF
 VALIDATOR3:                                 db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; "A KEY"
-                                            db 0x01 ; +1
-                                            db 0x01 ; PROC1(0x17)
+                                            db 0x02 ; IX+2
+                                            db 0x01 ; ==1
+                                            db 0x01 ; PROC1(0x17) is item available
                                             db 0x17 ; OBJECT_A_SLEEPING_SECURITY_MAN
                                             db 0xFF
 VALIDATOR4:                                 db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; "A KEY"
-                                            db 0x01 ; +1
+                                            db 0x02 ; IX+2
+                                            db 0x01 ; ==1
                                             db 0x01 ; PROC1(0x0e)
                                             db 0x0E ; OBJECT_A_BLOCK_OF_ICE
                                             db 0xFF
-VALIDATOR5:                                 db 0xFF
-ACTION_DIE_GREEN:                                    db 0x05 ; CMD_DEATH
+VALIDATOR5:                                 db 0xFF ; no validation
+ACTION_DIE_GREEN:                           db 0x05 ; CMD_DEATH
                                             db 0x23 ; I_HAVE_TURNED_GREEN_AND_DROPPED
                                             db 0x0C ; CMD_END
-ACTION_DIE_THROTT:                                    db 0x05 ; CMD_DEATH
+ACTION_DIE_THROTT:                          db 0x05 ; CMD_DEATH
                                             db 0x24 ; s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50
                                             db 0x0C ; CMD_END
-ACTION_DIE_SHOT:                                    db 0x05 ; CMD_DEATH
+ACTION_DIE_SHOT:                            db 0x05 ; CMD_DEATH
                                             db 0x25 ; s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77
                                             db 0x0C ; CMD_END
 ACTION_SWAP_ICE:                            db 0x0B ; CMD_SWAP_ITEM

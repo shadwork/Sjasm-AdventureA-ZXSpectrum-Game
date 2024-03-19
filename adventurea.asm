@@ -2,37 +2,40 @@
 
                                             include defines.asm
 
-	                                        define VAR_KEY_ST IX-0x8
-                                            define VAR_KEY_DO IX-0x7
-	                                        define VAR_KEY_BUFFER IX-0x6
-	                                        define VAR_KEY_CO IX-0x5
-	                                        define VAR_KEY_IN0 IX-0x4
-                                            define VAR_KEY_IN1 IX-0x3
-	                                        define VAR_ITEMS_COUNTER IX-0x2
+                                            define COMMAND_GET 0x0D
+                                            define ITEM_BOOT 0x10
+
+	                                        define VAR_FLAG_CANT_DO IX-0x8
+                                            define VAR_PROC_PARAM IX-0x7
+	                                        define VAR_MORE_PARSING IX-0x6
+	                                        define VAR_PROC IX-0x5
+	                                        define VAR_CMD_FIRST IX-0x4
+                                            define VAR_CMD_SECOND IX-0x3
+	                                        define VAR_TEMP IX-0x2
 	                                        define VAR_CURRENT_ROOM IX-0x1
 	                                        define VAR_START_GAME IX+0x0    
-                                            define VAR_START_B IX+0x1
+                                            define VAR_ITEMS_COUNT IX+0x1
 	                                        define VAR_START_C IX+0x2    
                                             define VAR_LIGHT IX+0x3   
                                             define VAR_START_E IX+0x4                                                                                                                             
 
                                             module GAME
                                             org 0x5d40
-                                            db 0x00; IX-8 VAR_KEY_ST
-VAR_KEY_DO_LABEL:                           db 0x00; IX-7
+                                            db 0x00; IX-8 VAR_FLAG_CANT_DO
+VAR_PROC_PARAM_ADDR:                          db 0x00; IX-7
                                             db 0x00; IX-6
-VAR_KEY_CO_LABEL:                           db 0x00; IX-5
-VAR_KEY_IN0_ADDR:                           db 0x00; IX-4 
-VAR_KEY_IN1_ADDR:                           db 0x00; IX-3
-SAVE_BUFFER_PART1:                          db 0x00; IX-2 VAR_ITEMS_COUNTER                               
+VAR_PROC_ADDR:                              db 0x00; IX-5
+VAR_CMD_FIRST_ADDR:                         db 0x00; IX-4 
+VAR_CMD_SECOND_ADDR:                        db 0x00; IX-3
+SAVE_BUFFER_PART1:                          db 0x00; IX-2 VAR_TEMP                               
 CURRENT_ROOM:                               db 0x00; IX-1 VAR_CURRENT_ROOM
 BUFFER:                                     ; clear on init 0x1e length = 30
                                             db 0xCD ; IX+0 VAR_START
-                                            db 0x42 ; IX+1
+                                            db 0x42 ; IX+1 VAR_ITEMS_COUNT
                                             db 0x6F ; IX+2 
                                             db 0xCD ; IX+3 
                                             db 0x50 ; IX+4
-                                            db 0x72
+                                            db 0x72 ; IX+5 start some table 
                                             db 0xCD
                                             db 0x00
                                             db 0x55
@@ -57,8 +60,8 @@ BUFFER:                                     ; clear on init 0x1e length = 30
                                             db 0xF1
                                             db 0xDD
                                             db 0xE1
-VAR_VAR1:                                   dw 0xd1c1
-VAR_VAR2:                                   dw 0xf5e1
+VAR_CMD_BUF0:                               dw 0xd1c1
+VAR_CMD_BUF1:                               dw 0xf5e1
 VAR_SCORE:                                  dw 0x0000
 ENTRY_POINT:                                LD HL,BUFFER
                                             LD B,0x1e
@@ -83,7 +86,7 @@ ASK_RESTORE_GAME:                           LD HL,TEXT_RESTORE_GAME
                                             CALL WAIT_KEY
                                             CP 'Y'
                                             CALL Z,GAME_RESTORED
-LAB_ram_5dbd:                               CALL INIT_SCREEN
+ENTER_NEW_ROOM:                             CALL INIT_SCREEN
                                             XOR A
                                             CP (VAR_START_GAME) ; zero here from start
                                             JR Z,PRINT_ROOM
@@ -103,7 +106,7 @@ STATE_DARK:                                 LD HL,TEXT_EVERYTHING_DARK
                                             CP (VAR_START_E) ; 0x50 started = 80
                                             JR Z,LAB_ram_5e09
                                             DEC (VAR_START_E)
-LAB_ram_5e09:                               JR PARSE_LOOP
+LAB_ram_5e09:                               JR PARSE_DEFAULTS
 PRINT_ROOM:                                 LD DE,ROOM_DESC_POINTER 
                                             LD L,(VAR_CURRENT_ROOM)
                                             LD H,0x0
@@ -114,16 +117,16 @@ PRINT_ROOM:                                 LD DE,ROOM_DESC_POINTER
                                             LD D,(HL)
                                             EX DE,HL
                                             CALL SCREEN.PRINT_TEXT_WRAP
-                                            LD (VAR_ITEMS_COUNTER),0x0
+                                            LD (VAR_TEMP),0x0
                                             LD HL,ITEMS_BY_ROOM_TABLE
                                             LD C,0x0 ; from first item
 PRINT_ITEMS:                                LD A,(HL)
                                             CP 0xff ;end of items
-                                            JR Z,PARSE_LOOP ; no item left - jump to input
+                                            JR Z,PARSE_DEFAULTS ; no item left - jump to input
                                             CP (VAR_CURRENT_ROOM)
                                             JR NZ,NEXT_ROOM_FOR_ITEM
                                             XOR A ; room is found
-                                            CP (VAR_ITEMS_COUNTER) 
+                                            CP (VAR_TEMP) 
                                             JR NZ,PRINT_NEXT_ITEM
                                             PUSH HL
                                             JR PRINT_ASLO_SEE
@@ -131,7 +134,7 @@ TEXT_ALSO_SEE:                              db "I CAN ALSO SEE :\r",0
 PRINT_ASLO_SEE:                             LD HL,TEXT_ALSO_SEE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            INC (VAR_ITEMS_COUNTER)
+                                            INC (VAR_TEMP)
 PRINT_NEXT_ITEM:                            PUSH HL
                                             LD HL,ITEM_DESC_POINTER 
                                             LD B,0x0
@@ -147,7 +150,7 @@ PRINT_NEXT_ITEM:                            PUSH HL
 NEXT_ROOM_FOR_ITEM:                         INC HL
                                             INC C
                                             JR PRINT_ITEMS
-PARSE_LOOP:                                 LD HL,TABLE_SIX 
+PARSE_DEFAULTS:                             LD HL,DEFAULT_TABLE 
                                             JP PARSE_PROC
 CMD_TELL_ME:                                POP BC
                                             POP HL
@@ -163,223 +166,223 @@ TEXT_TELL_ME:                               db "TELL ME WHAT TO DO \r",0
 LAB_ram_5e9b:                               LD HL,TEXT_TELL_ME 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             CALL READ_LINE
-                                            LD (VAR_KEY_ST),0x0
-LAB_ram_5ea8:                               CALL CMD_DECODE
-                                            LD (VAR_KEY_IN0_ADDR),A
+                                            LD (VAR_FLAG_CANT_DO),0x0
+SKIP_SPACES:                                CALL CMD_DECODE
+                                            LD (VAR_CMD_FIRST_ADDR),A
                                             CP 0xff
-                                            JR NZ,LAB_ram_5eec
-                                            LD A,(HL) 
-                                            CP 0xd
-                                            JR Z,LAB_ram_5eba
+                                            JR NZ,KNOW_COMMAND
+                                            LD A,(HL) ; pointed to input buffer
+                                            CP 0xd ; just first char is enter
+                                            JR Z,UNKNOWN_COMMAND
                                             OR A
-                                            JR NZ,LAB_ram_5ed9
-LAB_ram_5eba:                               PUSH HL 
+                                            JR NZ,LOOP_SPACES
+UNKNOWN_COMMAND:                            PUSH HL 
                                             JR LAB_ram_5ed0
 TEXT_DONT_UNDERSTAND:                       db "I DONT UNDERSTAND\r",0
 LAB_ram_5ed0:                               LD HL,TEXT_DONT_UNDERSTAND 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JR PARSE_LOOP
-LAB_ram_5ed9:                               LD A,(HL)                                            
-                                            CP 0x20
-                                            JR NZ,LAB_ram_5ee1
+                                            JR PARSE_DEFAULTS
+LOOP_SPACES:                                LD A,(HL)                                            
+                                            CP ' ' ; is it space ?
+                                            JR NZ,CHAR_IS_FOUND
                                             INC HL
-                                            JR LAB_ram_5ea8
-LAB_ram_5ee1:                               CP 0x0
-                                            JR Z,LAB_ram_5eba
+                                            JR SKIP_SPACES
+CHAR_IS_FOUND:                              CP 0x0
+                                            JR Z,UNKNOWN_COMMAND
                                             CP 0xd
-                                            JR Z,LAB_ram_5eba
+                                            JR Z,UNKNOWN_COMMAND
                                             INC HL
-                                            JR LAB_ram_5ed9
-LAB_ram_5eec:                               LD (VAR_KEY_IN1),0xff
-LAB_ram_5ef0:                               LD A,(HL)                                            
-                                            CP 0x20
-                                            JR Z,LAB_ram_5f02
+                                            JR LOOP_SPACES
+KNOW_COMMAND:                               LD (VAR_CMD_SECOND),0xff
+SEARCH_SECOND_CMD:                          LD A,(HL)                                            
+                                            CP ' '
+                                            JR Z,CMD_NEXT_WORD
                                             CP 0x0
-                                            JP Z,LAB_ram_5f1d
+                                            JP Z,CMD_PARCE_COMPLETE
                                             CP 0xd
-                                            JP Z,LAB_ram_5f1d
+                                            JP Z,CMD_PARCE_COMPLETE
                                             INC HL
-                                            JR LAB_ram_5ef0
-LAB_ram_5f02:                               INC HL
+                                            JR SEARCH_SECOND_CMD
+CMD_NEXT_WORD:                              INC HL
                                             CALL CMD_DECODE
-                                            LD (VAR_KEY_IN1_ADDR),A
+                                            LD (VAR_CMD_SECOND_ADDR),A
                                             CP 0xff
-                                            JR NZ,LAB_ram_5f1d
-LAB_ram_5f0d:                               LD A,(HL) 
+                                            JR NZ,CMD_PARCE_COMPLETE
+ITERATE_END_LINE:                           LD A,(HL) 
                                             
                                             CP 0x0
-                                            JR Z,LAB_ram_5f1d
+                                            JR Z,CMD_PARCE_COMPLETE
                                             CP 0xd
-                                            JR Z,LAB_ram_5f1d
+                                            JR Z,CMD_PARCE_COMPLETE
                                             CP 0x20
-                                            JR Z,LAB_ram_5f02
+                                            JR Z,CMD_NEXT_WORD
                                             INC HL
-                                            JR LAB_ram_5f0d
-LAB_ram_5f1d:                               LD D,0x0
+                                            JR ITERATE_END_LINE
+CMD_PARCE_COMPLETE:                         LD D,0x0
                                             LD E,(VAR_CURRENT_ROOM)
-                                            LD HL,SOME_POINTER 
+                                            LD HL,ROOM_NAV_POINTER 
                                             ADD HL,DE
                                             ADD HL,DE
                                             LD E,(HL)
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-LAB_ram_5f2b:                               LD A,(HL)
+NAV_SEARCH_LOOP:                            LD A,(HL)
                                             CP 0xff
-                                            JR Z,LAB_ram_5f41
-                                            CP (VAR_KEY_IN0)
-                                            JR NZ,LAB_ram_5f3d
+                                            JR Z,NAVIGATION_LIST_END
+                                            CP (VAR_CMD_FIRST)
+                                            JR NZ,NEXT_CMD_IN_ROOM
                                             INC HL
                                             LD A,(HL)
                                             LD (VAR_CURRENT_ROOM),A
-                                            JP LAB_ram_5dbd
-LAB_ram_5f3d:                               INC HL
+                                            JP ENTER_NEW_ROOM
+NEXT_CMD_IN_ROOM:                           INC HL
                                             INC HL
-                                            JR LAB_ram_5f2b
-LAB_ram_5f41:                               LD HL,DIR_TABLE 
-                                            LD (VAR_KEY_BUFFER),0x0
-PARSE_PROC:                                 LD A,(HL) ; pointed to TABLE_SIX = ff from start                      
+                                            JR NAV_SEARCH_LOOP
+NAVIGATION_LIST_END:                        LD HL,ACTION_TABLE ; command parce here is continued
+                                            LD (VAR_MORE_PARSING),0x0
+PARSE_PROC:                                 LD A,(HL) ; pointed to DEFAULT_TABLE  or ACTION_TABLE = ff from start                      
                                             OR A
                                             JR NZ,ACTION_FOUND
-                                            CP (VAR_KEY_BUFFER)
-                                            JP NZ,PARSE_LOOP
-                                            LD A,(VAR_KEY_IN0)
+                                            CP (VAR_MORE_PARSING) ; DEFAULT_TABLE ends with 0
+                                            JP NZ,PARSE_DEFAULTS 
+                                            LD A,(VAR_CMD_FIRST) 
                                             CP 0xd
-                                            JR C,PRINT_CANT_GO ; more then d
-                                            LD A,(VAR_KEY_ST)
+                                            JR C,PRINT_CANT_GO ; 0xd > first command - all moves under 0xd
+                                            LD A,(VAR_FLAG_CANT_DO)
                                             OR A
-                                            JR NZ,CANT_DO_YET
+                                            JR NZ,CANT_DO_YET ; 
                                             PUSH HL                                             
                                             JR PRINT_CANT
 TEXT_I_CANT:                                db "I CANT\r",0
 PRINT_CANT:                                 LD HL,TEXT_I_CANT 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JP PARSE_LOOP
+                                            JP PARSE_DEFAULTS
 CANT_DO_YET:                                PUSH HL                                             
                                             JR PRINT_CANT_DO_YET
 TEXT_I_CANT_DO_YET:                         db "I CANT DO THAT YET\r",0
 PRINT_CANT_DO_YET:                          LD HL,TEXT_I_CANT_DO_YET 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JP PARSE_LOOP
+                                            JP PARSE_DEFAULTS
 PRINT_CANT_GO:                              PUSH HL  
                                             JR PRINT_CANT_GO_TEXT
 TEXT_I_CANT_GO:                             db "I CANT GO IN THAT DIRECTION\r",0
 PRINT_CANT_GO_TEXT:                         LD HL,TEXT_I_CANT_GO 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JP PARSE_LOOP
+                                            JP PARSE_DEFAULTS
                                             NOP
 ACTION_FOUND:                               CP 0xff ; start value ff
-                                            JR Z,COMMAND_FOUND_FF
-                                            CP (VAR_KEY_IN0)
-                                            JR Z,COMMAND_FOUND_FF
+                                            JR Z,CMD_FIRST_FOUND
+                                            CP (VAR_CMD_FIRST)
+                                            JR Z,CMD_FIRST_FOUND
 CMD_NEXT_BLOCK:                             LD DE,0x6 ; next block 
                                             ADD HL,DE
-                                            JP PARSE_PROC
-COMMAND_FOUND_FF:                           INC HL ; get second byte
+                                            JP PARSE_PROC ; if not ff and not first command - then next 
+CMD_FIRST_FOUND:                            INC HL ; 
                                             LD A,(HL) 
                                             CP 0xff
-                                            JR Z,CMD2_FOUND_FF
-                                            CP (VAR_KEY_IN1)
-                                            JR Z,CMD2_FOUND_FF
+                                            JR Z,CMD_SECOND_FOUND
+                                            CP (VAR_CMD_SECOND)
+                                            JR Z,CMD_SECOND_FOUND
                                             DEC HL
                                             JR CMD_NEXT_BLOCK
-CMD2_FOUND_FF:                              INC HL
+CMD_SECOND_FOUND:                           INC HL
                                             LD C,(HL) 
                                             INC HL
-                                            LD B,(HL) ; first value in BC 
+                                            LD B,(HL) ; first value in BC - VALIDATOR0 or 
                                             INC HL
-JUMP_NEXT_BCA:                              LD A,(BC) 
+NEXT_VALIDATOR:                             LD A,(BC) 
                                             CP 0xff
-                                            JP Z,LAST_ITEM_FF
-                                            LD (VAR_KEY_CO_LABEL),A ; first [0] = 6,5,1,5,6,ff
+                                            JP Z,VALIDATION_COMPLETE
+                                            LD (VAR_PROC_ADDR),A ; first [0] = 6,5,1,5,6,ff
                                             INC BC
                                             LD A,(BC) 
-                                            LD (VAR_KEY_DO_LABEL),A ; second [1] = 5
-                                            PUSH HL 
+                                            LD (VAR_PROC_PARAM_ADDR),A ; second [1] = 5
+                                            PUSH HL ; hl pointed to ACTION_DIE_GREEN
                                             LD HL,PROC_POINTER 
                                             LD D,0x0
-                                            LD E,(VAR_KEY_CO)
+                                            LD E,(VAR_PROC)
                                             ADD HL,DE
                                             ADD HL,DE
                                             LD E,(HL) 
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            JP (HL) ; jump to pointer
-PROC_00:                                    LD A,(VAR_KEY_DO_LABEL)
+                                            JP (HL) ; jump to pointer PROC06, in BC second element
+PROC_00:                                    LD A,(VAR_PROC_PARAM_ADDR) ; verify if current room
                                             CP (VAR_CURRENT_ROOM)
                                             JR Z,PROCS_RET
 PROC_NEXT:                                  POP HL
                                             INC HL
                                             INC HL
-                                            LD (VAR_KEY_ST),1
+                                            LD (VAR_FLAG_CANT_DO),1
                                             JP PARSE_PROC
-PROC_01:                                    LD HL,ITEMS_BY_ROOM_TABLE
+PROC_01:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item available
                                             LD D,0x0
-                                            LD E,(VAR_KEY_DO)
+                                            LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
-                                            CP (VAR_CURRENT_ROOM)
+                                            CP (VAR_CURRENT_ROOM) ; if item in current room
                                             JR Z,PROCS_RET
-                                            CP 0xfd
+                                            CP 0xfd ; or item in pocket or wear
                                             JR NC,PROCS_RET
                                             JR PROC_NEXT
-PROC_02:                                    LD A,R
-                                            SUB (VAR_KEY_DO)
+PROC_02:                                    LD A,R ; randoms
+                                            SUB (VAR_PROC_PARAM)
                                             JR C,PROCS_RET
                                             JR PROC_NEXT
-PROC_03:                                    LD HL,ITEMS_BY_ROOM_TABLE
+PROC_03:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item here
                                             LD D,0x0
-                                            LD E,(VAR_KEY_DO)
+                                            LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP (VAR_CURRENT_ROOM)
                                             JR Z,PROC_NEXT
-                                            CP 0xfd
+                                            CP 0xfd 
                                             JR NC,PROC_NEXT
                                             JR PROCS_RET
-PROC_04:                                    LD HL,ITEMS_BY_ROOM_TABLE
+PROC_04:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item weared
                                             LD D,0x0
-                                            LD E,(VAR_KEY_DO)
+                                            LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP 0xfd
                                             JR Z,PROCS_RET
                                             JR PROC_NEXT
-PROC_05:                                    LD HL,BUFFER
+PROC_05:                                    LD HL,BUFFER ; two params compare with zero
                                             LD D,0x0
-                                            LD E,(VAR_KEY_DO)
+                                            LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             OR A
                                             JR Z,PROC_NEXT
 PROCS_RET:                                  POP HL
                                             INC BC
-                                            JP JUMP_NEXT_BCA
-PROC_06:                                    INC BC
-                                            LD A,(BC) 
+                                            JP NEXT_VALIDATOR
+PROC_06:                                    INC BC ; three params compare with third param
+                                            LD A,(BC) ; third element 6,5,1,5,6,ff
                                             LD HL,BUFFER
                                             LD D,0x0
-                                            LD E,(VAR_KEY_DO)
+                                            LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
-                                            CP (HL)
+                                            CP (HL) ; compared by IX
                                             JR NZ,PROC_NEXT ; next is triggered
                                             JR PROCS_RET
-PROC_07:                                    LD HL,BUFFER
+PROC_07:                                    LD HL,BUFFER ; is in table zero
                                             LD D,0x0
-                                            LD E,(VAR_KEY_DO)
+                                            LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             OR A
                                             JP NZ,PROC_NEXT
                                             JR PROCS_RET
-PROC_08:                                    LD HL,ITEMS_BY_ROOM_TABLE
+PROC_08:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item in inventory of weared
                                             LD D,0x0
-                                            LD E,(VAR_KEY_DO)
+                                            LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             LD A,(HL)
                                             CP 0xfe
@@ -393,26 +396,26 @@ PROC_POINTER:                               dw PROC_00
                                             dw PROC_03
                                             dw PROC_04
                                             dw PROC_05
-                                            dw PROC_06 ; start element
+                                            dw PROC_06
                                             dw PROC_07
                                             dw PROC_08
-LAST_ITEM_FF:                               LD C,(HL) 
+VALIDATION_COMPLETE:                        LD C,(HL) ; second param
                                             INC HL
                                             LD B,(HL)
                                             INC HL
-                                            LD (VAR_KEY_BUFFER),1
-LAB_ram_60b7:                               LD A,(BC)             
+                                            LD (VAR_MORE_PARSING),1
+NEXT_COMMAND:                               LD A,(BC)             
                                             CP 0xff
                                             JP Z,PARSE_PROC
-                                            LD (VAR_KEY_CO_LABEL),A
+                                            LD (VAR_PROC_ADDR),A
                                             INC BC
                                             LD A,(BC) 
-                                            LD (VAR_KEY_DO_LABEL),A
+                                            LD (VAR_PROC_PARAM_ADDR),A
                                             PUSH HL 
                                             PUSH BC 
                                             LD HL,CMD_POINTER 
                                             LD D,0x0
-                                            LD E,(VAR_KEY_CO)
+                                            LD E,(VAR_PROC)
                                             ADD HL,DE
                                             ADD HL,DE
                                             LD E,(HL) 
@@ -420,9 +423,9 @@ LAB_ram_60b7:                               LD A,(BC)
                                             LD D,(HL)
                                             EX DE,HL
                                             JP (HL)
-SUB_ram_60d6:                               LD HL,ITEMS_BY_ROOM_TABLE
+GET_ROOM_OF_ITEM:                           LD HL,ITEMS_BY_ROOM_TABLE ; room in VAR_PROC_PARAM result in A hl pointed to item
                                             LD B,0x0
-                                            LD C,(VAR_KEY_DO)
+                                            LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD A,(HL)
                                             RET
@@ -466,14 +469,14 @@ CMD_POINTER:                                dw CMD_INVENTORY
                                             dw CMD_CANT_CARRY
                                             dw CMD_DONT_HAVE
                                             dw CMD_ALREADY_WEAR
-                                            dw CMD_TURN_GREEN
+                                            dw CMD_DEATH
                                             dw CMD_LOOK_AROUND
                                             dw CMD_NOTHING
                                             dw CMD_6362
                                             dw CMD_636a
                                             dw CMD_6377
-                                            dw CMD_6388
-                                            dw CMD_6392
+                                            dw CMD_SWAP_ITEM
+                                            dw CMD_END
                                             dw CMD_OK
                                             dw CMD_SAVE
                                             dw CMD_6492
@@ -492,7 +495,7 @@ TEXT_HAVE_WITH_ME:                          db "I HAVE WITH ME THE FOLLOWING:\r"
 LAB_ram_615c:                               LD HL,TEXT_HAVE_WITH_ME 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            LD (VAR_ITEMS_COUNTER),0x0
+                                            LD (VAR_TEMP),0x0
                                             LD HL,ITEMS_BY_ROOM_TABLE
                                             LD C,0x0
 LOOP_INVENTORY:                             LD A,(HL)
@@ -500,7 +503,7 @@ LOOP_INVENTORY:                             LD A,(HL)
                                             JR Z,INVENTORY_EMPTY
                                             CP 0xfd
                                             JR C,NEXT_SCAN_ITEM ; fe - in inventory
-                                            LD (VAR_ITEMS_COUNTER),0x1
+                                            LD (VAR_TEMP),0x1
                                             PUSH HL
                                             LD HL,ITEM_DESC_POINTER 
                                             LD B,0x0
@@ -526,7 +529,7 @@ NEXT_SCAN_ITEM:                             INC HL
                                             INC C
                                             JR LOOP_INVENTORY
 INVENTORY_EMPTY:                            XOR A
-                                            CP (VAR_ITEMS_COUNTER)
+                                            CP (VAR_TEMP)
                                             JP NZ,CMD_LOOP
                                             PUSH HL
                                             JR LAB_ram_61cd
@@ -535,7 +538,7 @@ LAB_ram_61cd:                               LD HL,TEXT_NOTHING
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-CMD_NOT_WEARING:                            CALL SUB_ram_60d6
+CMD_NOT_WEARING:                            CALL GET_ROOM_OF_ITEM
                                             CP 0xfd
                                             JR Z,LAB_ram_6200
                                             PUSH HL
@@ -545,7 +548,7 @@ LAB_ram_61f6:                               LD HL,TEXT_NOT_WEARING
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-LAB_ram_6200:                               LD A,(VAR_START_B)
+LAB_ram_6200:                               LD A,(VAR_ITEMS_COUNT)
                                             CP 0x6
                                             JR NZ,LAB_ram_622f
                                             PUSH HL
@@ -556,11 +559,11 @@ LAB_ram_6225:                               LD HL,TEXT_HAND_FULL
                                             POP HL
                                             JP CMD_LOOP
 LAB_ram_622f:                               LD (HL),0xfe
-                                            INC (VAR_START_B)
-                                            JP LAB_ram_6382
-CMD_CANT_CARRY:                             LD A,(VAR_START_B)
-                                            CP 0x6
-                                            JR NZ,LAB_ram_6262
+                                            INC (VAR_ITEMS_COUNT)
+                                            JP CMD_ENDED
+CMD_CANT_CARRY:                             LD A,(VAR_ITEMS_COUNT)
+                                            CP 0x6 ; max items in inventory
+                                            JR NZ,SPACE_IS_ENOUGH
                                             PUSH HL
                                             JR LAB_ram_6258
 TEXT_CANT_CARRY:                            db "I CANT CARRY ANY MORE\r",0
@@ -568,12 +571,12 @@ LAB_ram_6258:                               LD HL,TEXT_CANT_CARRY
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-LAB_ram_6262:                               CALL SUB_ram_60d6
+SPACE_IS_ENOUGH:                            CALL GET_ROOM_OF_ITEM
                                             CP (VAR_CURRENT_ROOM)
                                             JR NZ,LAB_ram_6272
                                             LD (HL),0xfe
-                                            INC (VAR_START_B)
-                                            JP LAB_ram_6382
+                                            INC (VAR_ITEMS_COUNT)
+                                            JP CMD_ENDED
 LAB_ram_6272:                               CP 0xfd
                                             JR Z,LAB_ram_6298
                                             CP 0xfe
@@ -589,7 +592,7 @@ LAB_ram_62ae:                               LD HL,TEXT_ALREADY_HAVE
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-CMD_DONT_HAVE:                              CALL SUB_ram_60d6
+CMD_DONT_HAVE:                              CALL GET_ROOM_OF_ITEM
                                             CP (VAR_CURRENT_ROOM)
                                             JR NZ,LAB_ram_62dd
 LAB_ram_62c0:                               PUSH HL
@@ -603,16 +606,16 @@ LAB_ram_62dd:                               CP 0xfd
                                             JR Z,LAB_ram_62e8
                                             CP 0xfe
                                             JR NZ,LAB_ram_62c0
-                                            DEC (VAR_START_B)
+                                            DEC (VAR_ITEMS_COUNT)
 LAB_ram_62e8:                               LD A,(VAR_CURRENT_ROOM)
                                             LD (HL),A
-                                            JP LAB_ram_6382
-CMD_ALREADY_WEAR:                           CALL SUB_ram_60d6
+                                            JP CMD_ENDED
+CMD_ALREADY_WEAR:                           CALL GET_ROOM_OF_ITEM
                                             CP 0xfe
                                             JR NZ,LAB_ram_62fe
                                             LD (HL),0xfd
-                                            DEC (VAR_START_B)
-                                            JP LAB_ram_6382
+                                            DEC (VAR_ITEMS_COUNT)
+                                            JP CMD_ENDED
 LAB_ram_62fe:                               CP 0xfd
                                             JR NZ,LAB_ram_6328
                                             PUSH HL
@@ -629,9 +632,9 @@ LAB_ram_633b:                               LD HL,TEXT_I_DONT_HAVE_IT
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-CMD_TURN_GREEN:                             LD HL,ACTION_POINTER 
+CMD_DEATH:                             LD HL,ACTION_POINTER 
                                             LD B,0x0
-                                            LD C,(VAR_KEY_DO)
+                                            LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             ADD HL,BC
                                             LD E,(HL) 
@@ -639,39 +642,39 @@ CMD_TURN_GREEN:                             LD HL,ACTION_POINTER
                                             LD D,(HL)
                                             EX DE,HL
                                             CALL SCREEN.PRINT_TEXT_WRAP
-                                            JR LAB_ram_6382
+                                            JR CMD_ENDED
 CMD_LOOK_AROUND:                            POP BC
                                             POP HL
-                                            JP LAB_ram_5dbd
+                                            JP ENTER_NEW_ROOM
 CMD_NOTHING:                                POP BC
                                             POP HL
-                                            JP PARSE_LOOP
-CMD_6362:                                   LD A,(VAR_KEY_DO)
+                                            JP PARSE_DEFAULTS
+CMD_6362:                                   LD A,(VAR_PROC_PARAM)
                                             LD (VAR_CURRENT_ROOM),A
-                                            JR LAB_ram_6382
+                                            JR CMD_ENDED
 CMD_636a:                                   LD HL,BUFFER
                                             LD B,0x0
-                                            LD C,(VAR_KEY_DO)
+                                            LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD (HL),0xff
-                                            JR LAB_ram_6382
+                                            JR CMD_ENDED
 CMD_6377:                                   LD HL,BUFFER
                                             LD B,0x0
-                                            LD C,(VAR_KEY_DO)
+                                            LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD (HL),0x0
-LAB_ram_6382:                               POP BC
+CMD_ENDED:                                  POP BC
                                             POP HL
                                             INC BC
-                                            JP LAB_ram_60b7
-CMD_6388:                                   CALL SUB_ram_60d6
-                                            INC HL
+                                            JP NEXT_COMMAND
+CMD_SWAP_ITEM:                              CALL GET_ROOM_OF_ITEM
+                                            INC HL ; next item
                                             LD B,(HL)
-                                            LD (HL),A
+                                            LD (HL),A ; room of item here
                                             DEC HL
                                             LD (HL),B
-                                            JR LAB_ram_6382
-CMD_6392:                                   JP LAB_ram_643f
+                                            JR CMD_ENDED
+CMD_END:                                    JP TRY_AGAIN
 CMD_OK:                                     PUSH HL
                                             JR LAB_ram_639e
 TEXT_OK:                                    db "OK..\r",0
@@ -687,7 +690,7 @@ LAB_ram_63ca:                               LD HL,TEXT_WANT_SAVE
                                             POP HL
                                             CALL WAIT_KEY
                                             CP 0x59
-                                            JR NZ,LAB_ram_643f
+                                            JR NZ,TRY_AGAIN
                                             PUSH IX
                                             LD IX,SAVE_BUFFER_PART1
                                             LD DE,0x2b
@@ -716,13 +719,13 @@ LAB_ram_6430:                               LD HL,TEXT_CONTINUE
                                             CALL WAIT_KEY
                                             CP 0x59
                                             JP Z,CMD_LOOP
-LAB_ram_643f:                               PUSH HL
+TRY_AGAIN:                                  PUSH HL
                                             JR LAB_ram_645d
 TEXT_TRY_AGAIN:                             db "DO YOU WISH TO TRY AGAIN?\r",0
 LAB_ram_645d:                               LD HL,TEXT_TRY_AGAIN 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-LAB_ram_6464:                               PUSH HL
+CHECK_YES_NO:                               PUSH HL
                                             JR LAB_ram_6479
 TEXT_ANSWER:                                db "ANSWER YES OR NO\r",0
 LAB_ram_6479:                               LD HL,TEXT_ANSWER 
@@ -736,37 +739,37 @@ LAB_ram_6479:                               LD HL,TEXT_ANSWER
                                             JP Z,ENTRY_POINT
                                             CP 0x4e
                                             JP Z,0x0000
-                                            JR LAB_ram_6464
+                                            JR CHECK_YES_NO
 CMD_6492:                                   POP BC
                                             INC BC
                                             PUSH BC
                                             LD A,(BC)
-                                            LD (VAR_KEY_CO_LABEL),A
+                                            LD (VAR_PROC_ADDR),A
                                             LD HL,BUFFER
                                             LD B,0x0
-                                            LD C,(VAR_KEY_DO)
+                                            LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD (HL),A
-                                            JP LAB_ram_6382
+                                            JP CMD_ENDED
 CMD_64a6:                                   LD HL,ITEMS_BY_ROOM_TABLE
                                             LD B,0x0
-                                            LD C,(VAR_KEY_DO)
+                                            LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD A,(VAR_CURRENT_ROOM)
                                             LD (HL),A
-                                            JP LAB_ram_6382
+                                            JP CMD_ENDED
 CMD_64b6:                                   LD HL,ITEMS_BY_ROOM_TABLE
                                             LD B,0x0
-                                            LD C,(VAR_KEY_DO)
+                                            LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD (HL),0xfc
-                                            JP LAB_ram_6382
+                                            JP CMD_ENDED
 CMD_LOOP:                                   POP BC
                                             POP HL
-                                            JP PARSE_LOOP
+                                            JP PARSE_DEFAULTS
 CMD_SCORE:                                  LD A,(VAR_SCORE)
                                             LD B,A
-                                            LD A,(VAR_KEY_DO_LABEL)
+                                            LD A,(VAR_PROC_PARAM_ADDR)
                                             ADD A,B
                                             DAA
                                             LD (VAR_SCORE),A
@@ -777,7 +780,7 @@ CMD_SCORE:                                  LD A,(VAR_SCORE)
                                             ADC A,(HL)
                                             DAA
                                             LD (VAR_SCORE+1),A
-                                            JP LAB_ram_6382
+                                            JP CMD_ENDED
 TEXT_SCORE:                                 db "YOU HAVE A SCORE OF ",0
 CMD_GAME:                                   LD HL,TEXT_SCORE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
@@ -788,7 +791,7 @@ CMD_GAME:                                   LD HL,TEXT_SCORE
                                             CALL SCREEN.PRINT_CR
                                             POP BC
                                             POP HL
-                                            JP LAB_ram_60b7
+                                            JP NEXT_COMMAND
 PRINT_SCORE:                                PUSH AF
                                             RRA
                                             RRA
@@ -797,14 +800,14 @@ PRINT_SCORE:                                PUSH AF
                                             CALL SCREEN.PRINT_DIGIT
                                             POP AF
 
-CMD_DECODE:                                 PUSH HL
-                                            LD HL,0x2020
-                                            LD (VAR_VAR1),HL 
-                                            LD (VAR_VAR2),HL 
+CMD_DECODE:                                 PUSH HL ; HL pointed to input buffer, command code return in A, ff - command not found HL not changed
+                                            LD HL,0x2020 ; two spaces
+                                            LD (VAR_CMD_BUF0),HL 
+                                            LD (VAR_CMD_BUF1),HL 
                                             POP HL
-                                            LD DE,VAR_VAR1 
+                                            LD DE,VAR_CMD_BUF0 
                                             LD B,0x4 ; cmd length
-CMD_DECODE_LOOP:                            LD A,(HL)
+CMD_COPY_LOOP:                              LD A,(HL)
                                             CP 0x20
                                             JR Z,LABEL_LINE_DELIM
                                             CP 0x0
@@ -814,36 +817,36 @@ CMD_DECODE_LOOP:                            LD A,(HL)
                                             LD (DE),A 
                                             INC HL
                                             INC DE
-                                            DJNZ CMD_DECODE_LOOP
+                                            DJNZ CMD_COPY_LOOP
 LABEL_LINE_DELIM:                           PUSH HL
                                             LD HL,COMMAND_LIST 
                                             LD A,0xff
                                             PUSH AF
-LAB_ram_654e:                               LD (VAR_ITEMS_COUNTER),0x0
+CMD_NEXT_COMMAND:                           LD (VAR_TEMP),0x0 ; equal
                                             LD B,0x4
-                                            LD DE,VAR_VAR1 
-LAB_ram_6557:                               LD A,(HL) 
+                                            LD DE,VAR_CMD_BUF0 
+CMD_CP_LOOP:                                LD A,(HL) 
                                             
                                             CP 0xff
-                                            JR Z,LAB_ram_6571
+                                            JR Z,CMD_LIST_ENDED
                                             LD A,(DE) 
                                             CP (HL) 
                                             JR Z,LAB_ram_6564
-                                            LD (VAR_ITEMS_COUNTER),0x1
+                                            LD (VAR_TEMP),0x1 ; not equal
 LAB_ram_6564:                               INC HL
                                             INC DE
-                                            DJNZ LAB_ram_6557
+                                            DJNZ CMD_CP_LOOP
                                             XOR A
-                                            CP (VAR_ITEMS_COUNTER)
-                                            JR NZ,LAB_ram_6574
+                                            CP (VAR_TEMP) 
+                                            JR NZ,CMD_NOT_EQUAL
                                             POP AF
                                             LD A,(HL) 
                                             PUSH AF
-LAB_ram_6571:                               POP AF
+CMD_LIST_ENDED:                             POP AF
                                             POP HL
-                                            RET
-LAB_ram_6574:                               INC HL
-                                            JR LAB_ram_654e
+                                            RET ; command code returned in A
+CMD_NOT_EQUAL:                              INC HL
+                                            JR CMD_NEXT_COMMAND
 GAME_RESTORED:                              PUSH HL
                                             JR LAB_ram_658a
 TEXT_READY_CASSETE:                         db "READY CASSETTE\r",0
@@ -1110,9 +1113,9 @@ COMMAND_LIST:                               db "DOWN"
                                             db "W   "
                                             db 0x05
                                             db "GET "
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db "PICK"
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db "DROP"
                                             db 0x0E
                                             db "PUT "
@@ -1311,8 +1314,8 @@ COMMAND_LIST:                               db "DOWN"
                                             db 0x4A
                                             db 0xFF
 BYTE_ram_72b7:                              db 0xFF
-BYTE_ram_72b8:                              db 0x01
-                                            db 0x00
+VALID_GET_BOOT:                             db 0x01 ; PROC_01
+                                            db 0x00 ; with zero
                                             db 0xFF
 BYTE_ram_72bb:                              db 0x01
                                             db 0x01
@@ -1502,9 +1505,9 @@ BYTE_ram_736f:                              db 0x00
 BYTE_ram_7374:                              db 0x00
                                             db 0x13
                                             db 0xFF
-BYTE_ram_7377:                              db 0x02
-                                            db 0x00
-                                            db 0x0D
+ACTION_GET_BOOT:                            db 0x02 ; cmd CMD_CANT_CARRY
+                                            db 0x00 ; item 0 - OBJECT_A_PAIR_OF_BOOTS
+                                            db 0x0D ; CMD_OK
 BYTE_ram_737a:                              db 0x02
                                             db 0x01
                                             db 0x0D
@@ -1748,75 +1751,75 @@ BYTE_ram_7468:                              db 0x0B
                                             db 0x10
                                             db 0x05
                                             db 0x06
-DIR_TABLE:                                  db 0x0D
-                                            db 0x10
-                                            dw BYTE_ram_72b8 
-                                            dw BYTE_ram_7377 
-                                            db 0x0D
+ACTION_TABLE:                               db COMMAND_GET
+                                            db ITEM_BOOT
+                                            dw VALID_GET_BOOT 
+                                            dw ACTION_GET_BOOT 
+                                            db COMMAND_GET
                                             db 0x11
                                             dw BYTE_ram_72bb 
                                             dw BYTE_ram_737a 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x12
                                             dw BYTE_ram_72be 
                                             dw BYTE_ram_737d 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x13
                                             dw BYTE_ram_72c1 
                                             dw BYTE_ram_7380 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x15
                                             dw BYTE_ram_72c4 
                                             dw BYTE_ram_7383 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x16
                                             dw BYTE_ram_72c7 
                                             dw BYTE_ram_7386 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x17
                                             dw BYTE_ram_72ca 
                                             dw BYTE_ram_7389 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x17
                                             dw BYTE_ram_72cf 
                                             dw BYTE_ram_738c 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x18
                                             dw BYTE_ram_72cf 
                                             dw BYTE_ram_738c 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x19
                                             dw BYTE_ram_72d2 
                                             dw BYTE_ram_738f 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1A
                                             dw BYTE_ram_72d5 
                                             dw BYTE_ram_7392 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1B
                                             dw BYTE_ram_72d8 
                                             dw BYTE_ram_7395 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1B
                                             dw BYTE_ram_72db 
                                             dw BYTE_ram_7398 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x18
                                             dw BYTE_ram_72db 
                                             dw BYTE_ram_7398 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1C
                                             dw BYTE_ram_72de 
                                             dw BYTE_ram_739b 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1D
                                             dw BYTE_ram_72e1 
                                             dw BYTE_ram_739e 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x25
                                             dw BYTE_ram_72e4 
                                             dw BYTE_ram_73a4 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x26
                                             dw BYTE_ram_72e7 
                                             dw BYTE_ram_73a7 
@@ -1829,8 +1832,8 @@ DIR_TABLE:                                  db 0x0D
                                             dw BYTE_ram_72b7 
                                             dw BYTE_ram_73ac 
                                             db 0x0E
-                                            db 0x10
-                                            dw BYTE_ram_72b8 
+                                            db ITEM_BOOT
+                                            dw VALID_GET_BOOT 
                                             dw BYTE_ram_73ad 
                                             db 0x0E
                                             db 0x11
@@ -1921,11 +1924,11 @@ DIR_TABLE:                                  db 0x0D
                                             dw BYTE_ram_72f8
                                             dw BYTE_ram_73eb 
                                             db 0x41
-                                            db 0x10
+                                            db ITEM_BOOT
                                             dw BYTE_ram_72b7 
                                             dw BYTE_ram_73f0 
                                             db 0x33
-                                            db 0x10
+                                            db ITEM_BOOT
                                             dw BYTE_ram_72b7 
                                             dw BYTE_ram_73f3 
                                             db 0x42
@@ -1960,15 +1963,15 @@ DIR_TABLE:                                  db 0x0D
                                             db 0x1D
                                             dw BYTE_ram_7310
                                             dw BYTE_ram_7406 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1F
                                             dw BYTE_ram_7315 
                                             dw BYTE_ram_7410 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1F
                                             dw BYTE_ram_731c 
                                             dw BYTE_ram_741c 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x1F
                                             dw BYTE_ram_7321 
                                             dw BYTE_ram_7410 
@@ -1976,11 +1979,11 @@ DIR_TABLE:                                  db 0x0D
                                             db 0x1F
                                             dw BYTE_ram_7324 
                                             dw BYTE_ram_7421 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x17
                                             dw BYTE_ram_7327 
                                             dw BYTE_ram_7424 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x18
                                             dw BYTE_ram_72cf 
                                             dw BYTE_ram_7427 
@@ -2080,7 +2083,7 @@ DIR_TABLE:                                  db 0x0D
                                             db 0x1E
                                             dw BYTE_ram_776e
                                             dw BYTE_ram_7811 
-                                            db 0x0D
+                                            db COMMAND_GET
                                             db 0x16
                                             dw BYTE_ram_776e
                                             dw BYTE_ram_7814 
@@ -2561,57 +2564,57 @@ BYTE_ram_788e:                              db 0x05
 BYTE_ram_7891:                              db 0x05
                                             db 0x12
                                             db 0x07
-SOME_POINTER:                               dw BYTE_ram_78be 
-                                            dw BYTE_ram_78c5 
-                                            dw BYTE_ram_78c8 
-                                            dw BYTE_ram_78cd 
-                                            dw BYTE_ram_78d2 
-                                            dw BYTE_ram_78d7 
-                                            dw BYTE_ram_78da 
-                                            dw BYTE_ram_78db 
-                                            dw BYTE_ram_78e6 
-                                            dw BYTE_ram_78f1 
-                                            dw BYTE_ram_78fc 
-                                            dw BYTE_ram_7907 
-                                            dw BYTE_ram_790a 
-                                            dw BYTE_ram_7911 
-                                            dw BYTE_ram_7912 
-                                            dw BYTE_ram_7915 
-                                            dw BYTE_ram_791a 
-                                            dw BYTE_ram_7921 
-                                            dw BYTE_ram_7924 
-                                            dw BYTE_ram_7927 
-                                            dw BYTE_ram_7927 
-BYTE_ram_78be:                              db 0x01
-                                            db 0x03
-                                            db 0x04
-                                            db 0x02
-                                            db 0x05
-                                            db 0x01
+ROOM_NAV_POINTER:                           dw ROOM_00_NAV 
+                                            dw ROOM_01_NAV 
+                                            dw ROOM_02_NAV 
+                                            dw ROOM_03_NAV 
+                                            dw ROOM_04_NAV 
+                                            dw ROOM_05_NAV 
+                                            dw ROOM_06_NAV 
+                                            dw ROOM_07_NAV 
+                                            dw ROOM_08_NAV 
+                                            dw ROOM_09_NAV 
+                                            dw ROOM_10_NAV 
+                                            dw ROOM_11_NAV 
+                                            dw ROOM_12_NAV 
+                                            dw ROOM_13_NAV 
+                                            dw ROOM_14_NAV 
+                                            dw ROOM_15_NAV 
+                                            dw ROOM_16_NAV 
+                                            dw ROOM_17_NAV 
+                                            dw ROOM_18_NAV 
+                                            dw ROOM_19_NAV 
+                                            dw ROOM_19_NAV 
+ROOM_00_NAV:                              db 0x01 ; cmd "DOWN"
+                                            db 0x03 ; to room 3
+                                            db 0x04 ; cmd "EAST"
+                                            db 0x02 ; to room 2
+                                            db 0x05 ; "WEST"
+                                            db 0x01 ; to room 1
                                             db 0xFF
-BYTE_ram_78c5:                              db 0x04
-                                            db 0x00
+ROOM_01_NAV:                              db 0x04 ; cmd "EAST"
+                                            db 0x00 ;  to room 0
                                             db 0xFF
-BYTE_ram_78c8:                              db 0x02
+ROOM_02_NAV:                              db 0x02
                                             db 0x07
                                             db 0x05
                                             db 0x00
                                             db 0xFF
-BYTE_ram_78cd:                              db 0x03
+ROOM_03_NAV:                              db 0x03
                                             db 0x04
                                             db 0x05
                                             db 0x00
                                             db 0xFF
-BYTE_ram_78d2:                              db 0x02
+ROOM_04_NAV:                              db 0x02
                                             db 0x03
                                             db 0x04
                                             db 0x05
                                             db 0xFF
-BYTE_ram_78d7:                              db 0x02
+ROOM_05_NAV:                              db 0x02
                                             db 0x04
                                             db 0xFF
-BYTE_ram_78da:                              db 0xFF
-BYTE_ram_78db:                              db 0x01
+ROOM_06_NAV:                              db 0xFF
+ROOM_07_NAV:                              db 0x01
                                             db 0x07
                                             db 0x02
                                             db 0x08
@@ -2622,7 +2625,7 @@ BYTE_ram_78db:                              db 0x01
                                             db 0x05
                                             db 0x07
                                             db 0xFF
-BYTE_ram_78e6:                              db 0x01
+ROOM_08_NAV:                              db 0x01
                                             db 0x07
                                             db 0x02
                                             db 0x07
@@ -2633,7 +2636,7 @@ BYTE_ram_78e6:                              db 0x01
                                             db 0x05
                                             db 0x07
                                             db 0xFF
-BYTE_ram_78f1:                              db 0x01
+ROOM_09_NAV:                              db 0x01
                                             db 0x07
                                             db 0x02
                                             db 0x07
@@ -2644,7 +2647,7 @@ BYTE_ram_78f1:                              db 0x01
                                             db 0x05
                                             db 0x07
                                             db 0xFF
-BYTE_ram_78fc:                              db 0x01
+ROOM_10_NAV:                              db 0x01
                                             db 0x07
                                             db 0x02
                                             db 0x02
@@ -2655,39 +2658,39 @@ BYTE_ram_78fc:                              db 0x01
                                             db 0x05
                                             db 0x0B
                                             db 0xFF
-BYTE_ram_7907:                              db 0x04
+ROOM_11_NAV:                              db 0x04
                                             db 0x07
                                             db 0xFF
-BYTE_ram_790a:                              db 0x03
+ROOM_12_NAV:                              db 0x03
                                             db 0x0F
                                             db 0x04
                                             db 0x0D
                                             db 0x05
                                             db 0x13
                                             db 0xFF
-BYTE_ram_7911:                              db 0xFF
-BYTE_ram_7912:                              db 0x05
+ROOM_13_NAV:                              db 0xFF
+ROOM_14_NAV:                              db 0x05
                                             db 0x0D
                                             db 0xFF
-BYTE_ram_7915:                              db 0x04
+ROOM_15_NAV:                              db 0x04
                                             db 0x13
                                             db 0x05
                                             db 0x13
                                             db 0xFF
-BYTE_ram_791a:                              db 0x02
+ROOM_16_NAV:                              db 0x02
                                             db 0x0F
                                             db 0x03
                                             db 0x13
                                             db 0x04
                                             db 0x11
                                             db 0xFF
-BYTE_ram_7921:                              db 0x05
+ROOM_17_NAV:                              db 0x05
                                             db 0x10
                                             db 0xFF
-BYTE_ram_7924:                              db 0x04
+ROOM_18_NAV:                              db 0x04
                                             db 0x10
                                             db 0xFF
-BYTE_ram_7927:                              db 0xFF
+ROOM_19_NAV:                              db 0xFF
 ACTION_POINTER:                             dw IT_SHOWS_A_MAN_CLIMBING 
                                             dw HOW_I_CANT_REACH 
                                             dw IT_HAS_FALLEN_TO_THE_FLOOR 
@@ -2769,73 +2772,73 @@ I_HAVE_TURNED_GREEN_AND_DROPPED:            db "I HAVE TURNED GREEN AND DROPPED 
 s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50:db "THE GREEN MAN AWOKE AND THROTTLED ME.\r",0
 s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77:     db "THE GUARD WOKE AND SHOT ME.\r",0
 s_WHAT_AT?_ram_7e94:                        db "WHAT AT?\r",0
-NAV0:                              db 0x06
-                                            db 0x05
-                                            db 0x01
-                                            db 0x05
-                                            db 0x06
+VALIDATOR0:                                 db 0x06 ; PROC6(5,1)
+                                            db 0x05 ; point to item 5 "A METAL BAR"
+                                            db 0x01 ; compared with index (IX+1)
+                                            db 0x05 ; PROC6(6)
+                                            db 0x06 ; point to item 6 "A GOLD COIN"
                                             db 0xFF
-NAV1:                              db 0x06
-                                            db 0x02
-                                            db 0x01
-                                            db 0x01
-                                            db 0x10
+VALIDATOR1:                                       db 0x06 ; PROC6(2,1)
+                                            db 0x02 ; "A KEY"
+                                            db 0x01 ; +1
+                                            db 0x01 ; PROC1(0x10) is item available
+                                            db 0x10 ; OBJECT_A_SMALL_GREEN_MAN_SLEEPING
                                             db 0xFF
-NAV2:                              db 0x06
-                                            db 0x02
-                                            db 0x01
-                                            db 0x01
-                                            db 0x11
+VALIDATOR2:                                 db 0x06 ; PROC6(2,1)
+                                            db 0x02 ; "A KEY"
+                                            db 0x01 ; +1
+                                            db 0x01 ; PROC1(0x11)
+                                            db 0x11 ; OBJECT_A_SLEEPING_GREEN_MAN
                                             db 0xFF
-NAV3:                              db 0x06
-                                            db 0x02
-                                            db 0x01
-                                            db 0x01
-                                            db 0x17
+VALIDATOR3:                                 db 0x06 ; PROC6(2,1)
+                                            db 0x02 ; "A KEY"
+                                            db 0x01 ; +1
+                                            db 0x01 ; PROC1(0x17)
+                                            db 0x17 ; OBJECT_A_SLEEPING_SECURITY_MAN
                                             db 0xFF
-NAV4:                              db 0x06
-                                            db 0x02
-                                            db 0x01
-                                            db 0x01
-                                            db 0x0E
+VALIDATOR4:                                 db 0x06 ; PROC6(2,1)
+                                            db 0x02 ; "A KEY"
+                                            db 0x01 ; +1
+                                            db 0x01 ; PROC1(0x0e)
+                                            db 0x0E ; OBJECT_A_BLOCK_OF_ICE
                                             db 0xFF
-NAV5:                              db 0xFF
-NAV6:                              db 0x05
-                                            db 0x23
-                                            db 0x0C
-NAV7:                              db 0x05
-                                            db 0x24
-                                            db 0x0C
-NAV8:                              db 0x05
-                                            db 0x25
-                                            db 0x0C
-NAV9:                              db 0x0B
-                                            db 0x0E
-NAV10:                              db 0x15
-TABLE_SIX:                                  db 0xFF
-                                            db 0xFF
-                                            dw NAV0 
-                                            dw NAV6 
-                                            db 0xFF
-                                            db 0xFF
-                                            dw NAV1 
-                                            dw NAV7 
+VALIDATOR5:                                 db 0xFF
+ACTION_DIE_GREEN:                                    db 0x05 ; CMD_DEATH
+                                            db 0x23 ; I_HAVE_TURNED_GREEN_AND_DROPPED
+                                            db 0x0C ; CMD_END
+ACTION_DIE_THROTT:                                    db 0x05 ; CMD_DEATH
+                                            db 0x24 ; s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50
+                                            db 0x0C ; CMD_END
+ACTION_DIE_SHOT:                                    db 0x05 ; CMD_DEATH
+                                            db 0x25 ; s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77
+                                            db 0x0C ; CMD_END
+ACTION_SWAP_ICE:                            db 0x0B ; CMD_SWAP_ITEM
+                                            db 0x0E ; item number OBJECT_A_BLOCK_OF_ICE and OBJECT_A_POOL_OF_WATER
+ACTION_TELL_ME:                             db 0x15 ; CMD_TELL_ME
+DEFAULT_TABLE:                              db 0xFF 
+                                            db 0xFF 
+                                            dw VALIDATOR0 
+                                            dw ACTION_DIE_GREEN 
                                             db 0xFF
                                             db 0xFF
-                                            dw NAV2 
-                                            dw NAV7 
+                                            dw VALIDATOR1 
+                                            dw ACTION_DIE_THROTT 
                                             db 0xFF
                                             db 0xFF
-                                            dw NAV3 
-                                            dw NAV8 
+                                            dw VALIDATOR2 
+                                            dw ACTION_DIE_THROTT 
                                             db 0xFF
                                             db 0xFF
-                                            dw NAV4 
-                                            dw NAV9 
+                                            dw VALIDATOR3 
+                                            dw ACTION_DIE_SHOT 
                                             db 0xFF
                                             db 0xFF
-                                            dw NAV5 
-                                            dw NAV10 
+                                            dw VALIDATOR4 
+                                            dw ACTION_SWAP_ICE 
+                                            db 0xFF
+                                            db 0xFF
+                                            dw VALIDATOR5 
+                                            dw ACTION_TELL_ME 
                                             db 0x00
                                             db 0x52
                                             db 0x4F

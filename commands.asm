@@ -1,23 +1,24 @@
-			                               	db "DOWN"
-                                            db 0x01
+                           	
+											db "DOWN"
+                                            db COMMAND_DOWN
                                             db "D   "
-                                            db 0x01
+                                            db COMMAND_DOWN
                                             db "NORT"
-                                            db 0x02
+                                            db COMMAND_NORT
                                             db "N   "
-                                            db 0x02
+                                            db COMMAND_NORT
                                             db "SOUT"
-                                            db 0x03
+                                            db COMMAND_SOUT
                                             db "S   "
-                                            db 0x03
+                                            db COMMAND_SOUT
                                             db "EAST"
-                                            db 0x04
+                                            db COMMAND_EAST
                                             db "E   "
-                                            db 0x04
+                                            db COMMAND_EAST
                                             db "WEST"
-                                            db 0x05
+                                            db COMMAND_WEST
                                             db "W   "
-                                            db 0x05
+                                            db COMMAND_WEST
                                             db "GET "
                                             db COMMAND_GET
                                             db "PICK"
@@ -31,191 +32,191 @@
                                             db "SHOO"
                                             db COMMAND_FIRE
                                             db "BOOT"
-                                            db 0x10
+                                            db COMMAND_BOOT
                                             db "STAR"
-                                            db 0x11
+                                            db COMMAND_STAR
                                             db "MOTO"
-                                            db 0x11
+                                            db COMMAND_STAR
                                             db "KEY "
-                                            db 0x12
+                                            db COMMAND_KEY
                                             db "LASE"
-                                            db 0x13
+                                            db COMMAND_GUN
                                             db "GUN "
-                                            db 0x13
+                                            db COMMAND_GUN
                                             db "USED"
-                                            db 0x14
+                                            db COMMAND_USED
                                             db "BAR "
-                                            db 0x15
+                                            db COMMAND_BAR
                                             db "BARS"
-                                            db 0x15
+                                            db COMMAND_BAR
                                             db "GOLD"
-                                            db 0x16
+                                            db COMMAND_COIN
                                             db "COIN"
-                                            db 0x16
+                                            db COMMAND_COIN
                                             db "MIRR"
-                                            db 0x17
+                                            db COMMAND_MIRR
                                             db "BROK"
-                                            db 0x18
+                                            db COMMAND_BROK
                                             db "GLOV"
-                                            db 0x19
+                                            db COMMAND_GLOV
                                             db "ROPE"
-                                            db 0x1A
+                                            db COMMAND_ROPE
                                             db "FLOO"
-                                            db 0x1B
+                                            db COMMAND_FLOO
                                             db "BOAR"
-                                            db 0x1B
+                                            db COMMAND_FLOO
                                             db "PLAN"
-                                            db 0x1B
+                                            db COMMAND_FLOO
                                             db "STAL"
-                                            db 0x1C
+                                            db COMMAND_STAL
                                             db "BLOC"
-                                            db 0x1D
+                                            db COMMAND_ICE
                                             db "ICE "
-                                            db 0x1D
+                                            db COMMAND_ICE
                                             db "POOL"
-                                            db 0x1E
+                                            db COMMAND_WATE
                                             db "WATE"
-                                            db 0x1E
+                                            db COMMAND_WATE
                                             db "LAKE"
-                                            db 0x1E
+                                            db COMMAND_WATE
                                             db "SLEE"
-                                            db 0x1F
+                                            db COMMAND_MAN
                                             db "GREE"
-                                            db 0x1F
+                                            db COMMAND_MAN
                                             db "MAN "
-                                            db 0x1F
+                                            db COMMAND_MAN
                                             db "DOOR"
-                                            db 0x20
+                                            db COMMAND_DOOR
                                             db "OPEN"
-                                            db 0x21
+                                            db COMMAND_OPEN
                                             db "UNLO"
-                                            db 0x21
+                                            db COMMAND_OPEN
                                             db "WIND"
-                                            db 0x22
+                                            db COMMAND_WIND
                                             db "SMAL"
-                                            db 0x23
+                                            db COMMAND_SHIP
                                             db "SPAC"
-                                            db 0x23
+                                            db COMMAND_SHIP
                                             db "SHIP"
-                                            db 0x23
+                                            db COMMAND_SHIP
                                             db "SECU"
-                                            db 0x24
+                                            db COMMAND_SECU
                                             db "FLIN"
-                                            db 0x25
+                                            db COMMAND_FLIN
                                             db "STON"
-                                            db 0x26
+                                            db COMMAND_STON
                                             db "DRAW"
-                                            db 0x27
+                                            db COMMAND_DRAW
                                             db "HELP"
-                                            db 0x28
+                                            db COMMAND_HELP
                                             db "INVE"
-                                            db 0x29
+                                            db COMMAND_INVE
                                             db "I   "
-                                            db 0x29
+                                            db COMMAND_INVE
                                             db "QUIT"
-                                            db 0x2A
+                                            db COMMAND_STOP
                                             db "STOP"
-                                            db 0x2A
+                                            db COMMAND_STOP
                                             db "ABOR"
-                                            db 0x2A
+                                            db COMMAND_STOP
                                             db "YES "
-                                            db 0x2B
+                                            db COMMAND_YES
                                             db "Y   "
-                                            db 0x2B
+                                            db COMMAND_YES
                                             db "NO  "
-                                            db 0x2C
+                                            db COMMAND_NO
                                             db "COMP"
-                                            db 0x2D
+                                            db COMMAND_KEYB
                                             db "KEYB"
-                                            db 0x2D
+                                            db COMMAND_KEYB
                                             db "TYPE"
-                                            db 0x2E
+                                            db COMMAND_TYPE
                                             db "TURN"
-                                            db 0x2F
+                                            db COMMAND_TURN
                                             db "HAND"
-                                            db 0x30
+                                            db COMMAND_HAND
                                             db "KILL"
-                                            db 0x31
+                                            db COMMAND_KILL
                                             db "DANC"
-                                            db 0x32
+                                            db COMMAND_DANC
                                             db "WALT"
-                                            db 0x32
+                                            db COMMAND_DANC
                                             db "REMO"
-                                            db 0x33
+                                            db COMMAND_REMO
                                             db "KICK"
-                                            db 0x34
+                                            db COMMAND_HIT
                                             db "BREA"
-                                            db 0x34
+                                            db COMMAND_HIT
                                             db "HIT "
-                                            db 0x34
+                                            db COMMAND_HIT
                                             db "BANG"
-                                            db 0x34
+                                            db COMMAND_HIT
                                             db "BRIB"
-                                            db 0x35
+                                            db COMMAND_BRIB
                                             db "USE "
-                                            db 0x36
+                                            db COMMAND_USE
                                             db "WITH"
-                                            db 0x36
+                                            db COMMAND_USE
                                             db "PUSH"
-                                            db 0x37
+                                            db COMMAND_PUSH
                                             db "THRE"
-                                            db 0x38
+                                            db COMMAND_3
                                             db "3   "
-                                            db 0x38
+                                            db COMMAND_3
                                             db "TWO "
-                                            db 0x39
+                                            db COMMAND_2
                                             db "2   "
-                                            db 0x39
+                                            db COMMAND_2
                                             db "ONE "
-                                            db 0x3A
+                                            db COMMAND_1
                                             db "1   "
-                                            db 0x3A
+                                            db COMMAND_1
                                             db "MEND"
-                                            db 0x3B
+                                            db COMMAND_FIX
                                             db "FIX "
-                                            db 0x3B
+                                            db COMMAND_FIX
                                             db "REPA"
-                                            db 0x3B
+                                            db COMMAND_FIX
                                             db "FOUR"
-                                            db 0x3C
+                                            db COMMAND_4
                                             db "4   "
-                                            db 0x3C
+                                            db COMMAND_4
                                             db "LOOK"
-                                            db 0x3D
+                                            db COMMAND_LOOK
                                             db "STAN"
-                                            db 0x3E
+                                            db COMMAND_STAN
                                             db "TREE"
-                                            db 0x3F
+                                            db COMMAND_TREE
                                             db "CUT "
-                                            db 0x40
+                                            db COMMAND_CUT
                                             db "SAW "
-                                            db 0x40
+                                            db COMMAND_CUT
                                             db "WEAR"
-                                            db 0x41
+                                            db COMMAND_WEAR
                                             db "CROS"
-                                            db 0x42
+                                            db COMMAND_CROS
                                             db "JUMP"
-                                            db 0x43
+                                            db COMMAND_JUMP
                                             db "RAVI"
-                                            db 0x44
+                                            db COMMAND_RAVI
                                             db "UP  "
-                                            db 0x45
+                                            db COMMAND_UP
                                             db "U   "
-                                            db 0x45
+                                            db COMMAND_UP
                                             db "CLIM"
-                                            db 0x45
+                                            db COMMAND_UP
                                             db "FUSE"
-                                            db 0x46
+                                            db COMMAND_FUSE
                                             db "REDE"
-                                            db 0x47
+                                            db COMMAND_REDE
                                             db "R   "
-                                            db 0x47
+                                            db COMMAND_REDE
                                             db "MAIN"
-                                            db 0x48
+                                            db COMMAND_MAIN
                                             db "AUX "
-                                            db 0x49
+                                            db COMMAND_AUX
                                             db "FIEL"
-                                            db 0x4A
+                                            db COMMAND_FIEL
                                             db "SHIE"
-                                            db 0x4A
+                                            db COMMAND_FIEL
                                             db 0xFF

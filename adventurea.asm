@@ -2,11 +2,80 @@
 
                                             include defines.asm
 
+                                            define COMMAND_DOWN 0x01
+                                            define COMMAND_NORT 0x02
+                                            define COMMAND_SOUT 0x03
+                                            define COMMAND_EAST 0x04
+                                            define COMMAND_WEST 0x05
                                             define COMMAND_GET 0x0D
                                             define COMMAND_PUT 0x0E
                                             define COMMAND_FIRE 0x0F
+			                                define COMMAND_BOOT 0x10 
+			                                define COMMAND_STAR 0x11 
+			                                define COMMAND_KEY 0x12 
+			                                define COMMAND_GUN 0x13 
+                                            define COMMAND_USED 0x14 
+                                            define COMMAND_BAR 0x15    
+                                            define COMMAND_COIN 0x16 
+                                            define COMMAND_MIRR 0x17
+                                            define COMMAND_BROK 0x18
+                                            define COMMAND_GLOV 0x19
+                                            define COMMAND_ROPE 0x1A
+                                            define COMMAND_FLOO 0x1B 
+                                            define COMMAND_STAL 0x1C
+                                            define COMMAND_ICE 0x1D  
+                                            define COMMAND_WATE 0x1E     
+                                            define COMMAND_MAN 0x1F                                                                                                                                                                                                                       
+                                            define COMMAND_DOOR 0x20 
+                                            define COMMAND_OPEN 0x21 
+                                            define COMMAND_WIND 0x22 
+                                            define COMMAND_SHIP 0x23 
+                                            define COMMAND_SECU 0x24
+                                            define COMMAND_FLIN 0x25
+                                            define COMMAND_STON 0x26
+                                            define COMMAND_DRAW 0x27    
+                                            define COMMAND_HELP 0x28                                             
+                                            define COMMAND_INVE 0x29 
+                                            define COMMAND_STOP 0x2A
+                                            define COMMAND_YES 0x2B                                            
+                                            define COMMAND_NO 0x2C 
+                                            define COMMAND_KEYB 0x2D 
+                                            define COMMAND_TYPE 0x2E 
+                                            define COMMAND_TURN 0x2F  
+                                            define COMMAND_HAND 0x30                                                                                        
+                                            define COMMAND_KILL 0x31  
+                                            define COMMAND_DANC 0x32 
+                                            define COMMAND_REMO 0x33     
+                                            define COMMAND_HIT 0x34                                             
+                                            define COMMAND_BRIB 0x35
+                                            define COMMAND_USE 0x36
+                                            define COMMAND_PUSH 0x37
+                                            define COMMAND_3 0x38
+                                            define COMMAND_2 0x39
+                                            define COMMAND_1 0x3A
+                                            define COMMAND_FIX 0x3B
+                                            define COMMAND_4 0x3C
+                                            define COMMAND_LOOK 0x3D
+                                            define COMMAND_STAN 0x3E
+                                            define COMMAND_TREE 0x3F
+                                            define COMMAND_CUT 0x40
+                                            define COMMAND_WEAR 0x41
+                                            define COMMAND_CROS 0x42
+                                            define COMMAND_JUMP 0x43
+                                            define COMMAND_RAVI 0x44
+                                            define COMMAND_UP 0x45
+                                            define COMMAND_FUSE 0x46
+                                            define COMMAND_REDE 0x47
+                                            define COMMAND_MAIN 0x48
+                                            define COMMAND_AUX 0x49
+                                            define COMMAND_FIEL 0x4A
+                                            define COMMAND_ANY 0xFF
 
-                                            define ITEM_BOOT 0x10
+                                            ;define IS_CURRENT_ROOM 0x00
+                                            ;define IS_CURRENT_ROOM 0x01
+                                            ;define IS_CURRENT_ROOM 0x02
+                                            ;define IS_CURRENT_ROOM 0x03
+
 
 	                                        define VAR_FLAG_CANT_DO IX-0x8
                                             define VAR_PROC_PARAM IX-0x7
@@ -25,52 +94,52 @@
                                             module GAME
                                             org 0x5d40
                                             db 0x00; IX-8 VAR_FLAG_CANT_DO
-VAR_PROC_PARAM_ADDR:                          db 0x00; IX-7
+VAR_PROC_PARAM_ADDR:                        db 0x00; IX-7
                                             db 0x00; IX-6
 VAR_PROC_ADDR:                              db 0x00; IX-5
 VAR_CMD_FIRST_ADDR:                         db 0x00; IX-4 
 VAR_CMD_SECOND_ADDR:                        db 0x00; IX-3
-SAVE_BUFFER_PART1:                          db 0x00; IX-2 VAR_TEMP                               
+GAME_STATE:                                 db 0x00; IX-2 VAR_TEMP                               
 CURRENT_ROOM:                               db 0x00; IX-1 VAR_CURRENT_ROOM
-BUFFER:                                     ; clear on init 0x1e length = 30
+VARS:                                       ; clear on init 0x1e length = 30
                                             db 0xCD ; IX+0 VAR_START
                                             db 0x42 ; IX+1 VAR_ITEMS_COUNT
                                             db 0x6F ; IX+2 
                                             db 0xCD ; IX+3 
                                             db 0x50 ; IX+4
                                             db 0x72 ; IX+5 
-                                            db 0xCD
-                                            db 0x00
-                                            db 0x55
-                                            db 0xC3
-                                            db 0x27
-                                            db 0x64
-                                            db 0xE3
-                                            db 0xF3
-                                            db 0xD5
-                                            db 0xC5
-                                            db 0xDD
-                                            db 0xE5
-                                            db 0xE5
-                                            db 0xDD
-                                            db 0x21
-                                            db 0x5F
-                                            db 0x72
-                                            db 0xC9
-                                            db 0x32
-                                            db 0x0F
-                                            db 0x76
-                                            db 0xF1
-                                            db 0xDD
-                                            db 0xE1
+                                            db 0xCD ; IX+6
+                                            db 0x00 ; IX+7
+                                            db 0x55 ; IX+8
+                                            db 0xC3 ; IX+9
+                                            db 0x27 ; IX+A
+                                            db 0x64 ; IX+B
+                                            db 0xE3 ; IX+C
+                                            db 0xF3 ; IX+D
+                                            db 0xD5 ; IX+E
+                                            db 0xC5 ; IX+F
+                                            db 0xDD ; IX+10
+                                            db 0xE5 ; IX+11
+                                            db 0xE5 ; IX+12
+                                            db 0xDD ; IX+13
+                                            db 0x21 ; IX+14
+                                            db 0x5F ; IX+15
+                                            db 0x72 ; IX+16
+                                            db 0xC9 ; IX+17
+                                            db 0x32 ; IX+18
+                                            db 0x0F ; IX+19
+                                            db 0x76 ; IX+1A
+                                            db 0xF1 ; IX+1B
+                                            db 0xDD ; IX+1C
+                                            db 0xE1 ; IX+1D
 VAR_CMD_BUF0:                               dw 0xd1c1
 VAR_CMD_BUF1:                               dw 0xf5e1
 VAR_SCORE:                                  dw 0x0000
-ENTRY_POINT:                                LD HL,BUFFER
+ENTRY_POINT:                                LD HL,VARS
                                             LD B,0x1e
-CLEAR_BUFFER:                               LD (HL),0x0
+CLEAR_VARS:                               LD (HL),0x0
                                             INC HL
-                                            DJNZ CLEAR_BUFFER
+                                            DJNZ CLEAR_VARS
                                             LD HL,0x0
                                             LD (VAR_SCORE),HL
                                             CALL GAME_INIT
@@ -78,7 +147,7 @@ CLEAR_BUFFER:                               LD (HL),0x0
                                             LD DE,ITEMS_BY_ROOM_TABLE ;copy to
                                             LD BC,0x1d ;copy size
                                             LDIR
-                                            LD IX,BUFFER
+                                            LD IX,VARS
                                             LD (VAR_CURRENT_ROOM),0x0 ; starting from room 0
                                             PUSH HL
                                             JR ASK_RESTORE_GAME
@@ -106,7 +175,7 @@ STATE_DARK:                                 LD HL,TEXT_EVERYTHING_DARK
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             XOR A
-                                            CP (VAR_START_E) ; 0x50 started = 80
+                                            CP (VAR_START_E)
                                             JR Z,LAB_ram_5e09
                                             DEC (VAR_START_E)
 LAB_ram_5e09:                               JR PARSE_DEFAULTS
@@ -334,11 +403,11 @@ PROC_01:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item 
                                             CP 0xfd ; or item in pocket or wear
                                             JR NC,PROC_SUCESS
                                             JR PROC_FAILED
-PROC_02:                                    LD A,R ; randoms
+PROC_02:                                    LD A,R ; randoms 
                                             SUB (VAR_PROC_PARAM)
                                             JR C,PROC_SUCESS
                                             JR PROC_FAILED
-PROC_03:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item here
+PROC_03:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item in room
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
@@ -356,7 +425,7 @@ PROC_04:                                    LD HL,ITEMS_BY_ROOM_TABLE ; is item 
                                             CP 0xfd
                                             JR Z,PROC_SUCESS
                                             JR PROC_FAILED
-PROC_05:                                    LD HL,BUFFER ; two params compare with zero
+PROC_05:                                    LD HL,VARS ; two params compare with zero
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
@@ -368,14 +437,14 @@ PROC_SUCESS:                                POP HL
                                             JP NEXT_VALIDATOR
 PROC_06:                                    INC BC ; three params compare with third param
                                             LD A,(BC) ; third element 6,5,1,5,6,ff
-                                            LD HL,BUFFER
+                                            LD HL,VARS
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
                                             CP (HL) ; compared by IX
                                             JR NZ,PROC_FAILED ; next is triggered
                                             JR PROC_SUCESS
-PROC_07:                                    LD HL,BUFFER ; is in table zero
+PROC_07:                                    LD HL,VARS ; is in table zero
                                             LD D,0x0
                                             LD E,(VAR_PROC_PARAM)
                                             ADD HL,DE
@@ -436,23 +505,23 @@ READ_LINE:                                  LD HL,LINE_BUFFER
                                             JP READ_LINE_START
 LINE_BUFFER:                                ds 33
 CMD_POINTER:                                dw CMD_INVENTORY
-                                            dw CMD_NOT_WEARING
-                                            dw CMD_CANT_CARRY
-                                            dw CMD_DONT_HAVE
-                                            dw CMD_ALREADY_WEAR
-                                            dw CMD_DEATH
+                                            dw CMD_UNWEAR_ITEM
+                                            dw CMD_GET_ITEM
+                                            dw CMD_DROP_ITEM
+                                            dw CMD_WEAR_ITEM
+                                            dw CMD_PRINT_ANSWER
                                             dw CMD_LOOK_AROUND
                                             dw CMD_NOTHING
-                                            dw CMD_6362
-                                            dw CMD_636a
-                                            dw CMD_6377
+                                            dw CMD_SET_CURRENT_ROOM
+                                            dw CMD_VAR_TO_FF
+                                            dw CMD_VAR_CLEAR
                                             dw CMD_SWAP_ITEM
                                             dw CMD_END
                                             dw CMD_OK
                                             dw CMD_SAVE
-                                            dw CMD_6492
-                                            dw CMD_64a6
-                                            dw CMD_64b6
+                                            dw CMD_VAR_SAVE
+                                            dw CMD_ITEM_DROP_HERE
+                                            dw CMD_REMOVE_ITEM
                                             dw CMD_SCORE
                                             dw CMD_GAME
                                             dw CMD_LOOP
@@ -509,9 +578,9 @@ LAB_ram_61cd:                               LD HL,TEXT_NOTHING
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-CMD_NOT_WEARING:                            CALL GET_ROOM_OF_ITEM
+CMD_UNWEAR_ITEM:                            CALL GET_ROOM_OF_ITEM
                                             CP 0xfd
-                                            JR Z,LAB_ram_6200
+                                            JR Z,IS_ITEM_WEARED
                                             PUSH HL
                                             JR LAB_ram_61f6
 TEXT_NOT_WEARING:                           db "I AM NOT WEARING IT\r",0
@@ -519,9 +588,9 @@ LAB_ram_61f6:                               LD HL,TEXT_NOT_WEARING
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-LAB_ram_6200:                               LD A,(VAR_ITEMS_COUNT)
+IS_ITEM_WEARED:                             LD A,(VAR_ITEMS_COUNT)
                                             CP 0x6
-                                            JR NZ,LAB_ram_622f
+                                            JR NZ,IS_SPACE_ENOUGH
                                             PUSH HL
                                             JR LAB_ram_6225
 TEXT_HAND_FULL:                             db "I CANT. MY HANDS ARE FULL\r",0
@@ -529,10 +598,10 @@ LAB_ram_6225:                               LD HL,TEXT_HAND_FULL
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-LAB_ram_622f:                               LD (HL),0xfe
+IS_SPACE_ENOUGH:                            LD (HL),0xfe
                                             INC (VAR_ITEMS_COUNT)
                                             JP CMD_ENDED
-CMD_CANT_CARRY:                             LD A,(VAR_ITEMS_COUNT)
+CMD_GET_ITEM:                               LD A,(VAR_ITEMS_COUNT)
                                             CP 0x6 ; max items in inventory
                                             JR NZ,SPACE_IS_ENOUGH
                                             PUSH HL
@@ -545,7 +614,7 @@ LAB_ram_6258:                               LD HL,TEXT_CANT_CARRY
 SPACE_IS_ENOUGH:                            CALL GET_ROOM_OF_ITEM
                                             CP (VAR_CURRENT_ROOM)
                                             JR NZ,LAB_ram_6272
-                                            LD (HL),0xfe
+                                            LD (HL),0xfe ; inventory mark
                                             INC (VAR_ITEMS_COUNT)
                                             JP CMD_ENDED
 LAB_ram_6272:                               CP 0xfd
@@ -563,10 +632,10 @@ LAB_ram_62ae:                               LD HL,TEXT_ALREADY_HAVE
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-CMD_DONT_HAVE:                              CALL GET_ROOM_OF_ITEM
+CMD_DROP_ITEM:                              CALL GET_ROOM_OF_ITEM
                                             CP (VAR_CURRENT_ROOM)
                                             JR NZ,LAB_ram_62dd
-LAB_ram_62c0:                               PUSH HL
+ITEM_IN_INVENTORY_BUT_WEARED:               PUSH HL
                                             JR LAB_ram_62d3
 TEXT_I_DONT_HAVE:                           db "I DONT HAVE IT\r",0
 LAB_ram_62d3:                               LD HL,TEXT_I_DONT_HAVE 
@@ -574,21 +643,21 @@ LAB_ram_62d3:                               LD HL,TEXT_I_DONT_HAVE
                                             POP HL
                                             JP CMD_LOOP
 LAB_ram_62dd:                               CP 0xfd
-                                            JR Z,LAB_ram_62e8
+                                            JR Z,ITEM_IN_INVENTORY
                                             CP 0xfe
-                                            JR NZ,LAB_ram_62c0
+                                            JR NZ,ITEM_IN_INVENTORY_BUT_WEARED
                                             DEC (VAR_ITEMS_COUNT)
-LAB_ram_62e8:                               LD A,(VAR_CURRENT_ROOM)
+ITEM_IN_INVENTORY:                          LD A,(VAR_CURRENT_ROOM)
                                             LD (HL),A
                                             JP CMD_ENDED
-CMD_ALREADY_WEAR:                           CALL GET_ROOM_OF_ITEM
+CMD_WEAR_ITEM:                              CALL GET_ROOM_OF_ITEM
                                             CP 0xfe
-                                            JR NZ,LAB_ram_62fe
+                                            JR NZ,WEAR_NOT_IN_INVENTORY
                                             LD (HL),0xfd
                                             DEC (VAR_ITEMS_COUNT)
                                             JP CMD_ENDED
-LAB_ram_62fe:                               CP 0xfd
-                                            JR NZ,LAB_ram_6328
+WEAR_NOT_IN_INVENTORY:                      CP 0xfd
+                                            JR NZ,WEAR_NOT_WEARED
                                             PUSH HL
                                             JR LAB_ram_631e
 TEXT_ALREADY_WEAR:                          db "I AM ALREADY WEARING IT\r",0
@@ -596,14 +665,14 @@ LAB_ram_631e:                               LD HL,TEXT_ALREADY_WEAR
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-LAB_ram_6328:                               PUSH HL
+WEAR_NOT_WEARED:                            PUSH HL
                                             JR LAB_ram_633b
 TEXT_I_DONT_HAVE_IT:                        db "I DONT HAVE IT\r",0
 LAB_ram_633b:                               LD HL,TEXT_I_DONT_HAVE_IT 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
-CMD_DEATH:                             LD HL,ACTION_POINTER 
+CMD_PRINT_ANSWER:                           LD HL,ANSWER_POINTER ; one param - text of action
                                             LD B,0x0
                                             LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
@@ -620,16 +689,16 @@ CMD_LOOK_AROUND:                            POP BC
 CMD_NOTHING:                                POP BC
                                             POP HL
                                             JP PARSE_DEFAULTS
-CMD_6362:                                   LD A,(VAR_PROC_PARAM)
+CMD_SET_CURRENT_ROOM:                                   LD A,(VAR_PROC_PARAM)
                                             LD (VAR_CURRENT_ROOM),A
                                             JR CMD_ENDED
-CMD_636a:                                   LD HL,BUFFER
+CMD_VAR_TO_FF:                                   LD HL,VARS ; set (IX+PARAM0) = 0xff
                                             LD B,0x0
                                             LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD (HL),0xff
                                             JR CMD_ENDED
-CMD_6377:                                   LD HL,BUFFER
+CMD_VAR_CLEAR:                              LD HL,VARS ; set (IX+PARAM0) = 0
                                             LD B,0x0
                                             LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
@@ -663,7 +732,7 @@ LAB_ram_63ca:                               LD HL,TEXT_WANT_SAVE
                                             CP 0x59
                                             JR NZ,TRY_AGAIN
                                             PUSH IX
-                                            LD IX,SAVE_BUFFER_PART1
+                                            LD IX,GAME_STATE
                                             LD DE,0x2b
                                             PUSH HL
                                             JR LAB_ram_63f4
@@ -711,25 +780,25 @@ LAB_ram_6479:                               LD HL,TEXT_ANSWER
                                             CP 0x4e
                                             JP Z,0x0000
                                             JR CHECK_YES_NO
-CMD_6492:                                   POP BC
+CMD_VAR_SAVE:                               POP BC ; stack pointed to VAR_PROC_PARAM (IX+PARAM0) = PARAM1
                                             INC BC
-                                            PUSH BC
-                                            LD A,(BC)
-                                            LD (VAR_PROC_ADDR),A
-                                            LD HL,BUFFER
+                                            PUSH BC ; now point on next cmd
+                                            LD A,(BC) ; actually third params
+                                            LD (VAR_PROC_ADDR),A ; placed in VAR_PROC
+                                            LD HL,VARS
                                             LD B,0x0
                                             LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
-                                            LD (HL),A
+                                            LD (HL),A 
                                             JP CMD_ENDED
-CMD_64a6:                                   LD HL,ITEMS_BY_ROOM_TABLE
+CMD_ITEM_DROP_HERE:                         LD HL,ITEMS_BY_ROOM_TABLE
                                             LD B,0x0
                                             LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
                                             LD A,(VAR_CURRENT_ROOM)
                                             LD (HL),A
                                             JP CMD_ENDED
-CMD_64b6:                                   LD HL,ITEMS_BY_ROOM_TABLE
+CMD_REMOVE_ITEM:                            LD HL,ITEMS_BY_ROOM_TABLE ; item 
                                             LD B,0x0
                                             LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
@@ -826,7 +895,7 @@ LAB_ram_658a:                               LD HL,TEXT_READY_CASSETE
                                             POP HL
                                             CALL WAIT_KEY
                                             PUSH IX
-                                            LD IX,SAVE_BUFFER_PART1
+                                            LD IX,GAME_STATE
                                             LD DE,0x29 ;size of save
                                             LD A,0xff
                                             SCF
@@ -925,55 +994,7 @@ INIT_SCREEN:                                PUSH HL
                                             POP DE
                                             POP HL
                                             RET
-ROOM_DESC_POINTER:                          dw PLACE_MOUNTAIN_PLATEA 
-                                            dw PLACE_EDGE_OF_A_DEEP_PIT 
-                                            dw PLACE_DAMP_LIMESTONE_CAVE 
-                                            dw PLACE_DENSE_FOREST 
-                                            dw PLACE_BESIDE_A_LAKE 
-                                            dw PLACE_STRANGE_HOUSE 
-                                            dw PLACE_OLD_SHED 
-                                            dw PLACE_MAZE 
-                                            dw PLACE_MAZE 
-                                            dw PLACE_MAZE 
-                                            dw PLACE_MAZE 
-                                            dw PLACE_ICE_CAVERN 
-                                            dw PLACE_QUIET_CAVERN 
-                                            dw PLACE_WIND_TUNNEL 
-                                            dw PLACE_COMPUTER_ROOM 
-                                            dw PLACE_PASSAGE 
-                                            dw PLACE_LARGE_HANGER 
-                                            dw PLACE_TALL_LIFT 
-                                            dw PLACE_LIFT_CONTROL_ROOM 
-                                            dw PLACE_PRISON_CELL 
-                                            dw PLACE_SPACE_SHIP 
-                                            dw 0x0000
-PLACE_MOUNTAIN_PLATEA:                      db "I AM ON A MOUNTAIN PLATEAU\rTO THE NORTH THERE IS A STEEP CLIFF\rOBVIOUS EXITS A"
-                                            db "RE DOWN,EAST AND WEST\r",0
-PLACE_EDGE_OF_A_DEEP_PIT:                   db "I AM AT THE EDGE OF A DEEP PIT\rOBVIOUS EXITS ARE EAST\r",0
-PLACE_DAMP_LIMESTONE_CAVE:                  db "I AM IN A DAMP LIMESTONE CAVE WITH STALACTITES HANGING DOWN.\rTHE EXIT IS TO THE"
-                                            db " WEST\rTHERE IS A PASSAGE TO THE NORTH\r",0
-PLACE_DENSE_FOREST:                         db "I AM IN A DENSE FOREST\rTHERE IS A ROPE HANGING FROM ONE TREE\rOBVIOUS EXITS ARE"
-                                            db " SOUTH AND WEST\r",0
-PLACE_BESIDE_A_LAKE:                        db "I AM BESIDE A LAKE\rEXITS ARE EAST AND NORTH.THERE IS A RAVINE TO THE WEST\r",0
-PLACE_STRANGE_HOUSE:                        db "I AM IN A STRANGE HOUSE\rTHE DOOR IS TO THE NORTH\r",0
-PLACE_OLD_SHED:                             db "I AM IN AN OLD SHED\rTHE EXIT IS TO THE EAST\r",0
-PLACE_MAZE:                                 db "I AM IN A MAZE.THERE ARE PASSAGES EVERYWHERE\r",0
-PLACE_ICE_CAVERN:                           db "I AM IN AN ICE CAVERN\rTHERE IS AN EXIT TO THE EAST\r",0
-PLACE_QUIET_CAVERN:                         db "I AM IN A QUIET CAVERN\rTHERE ARE EXITS WEST,EAST AND SOUTH\r",0
-PLACE_WIND_TUNNEL:                          db "I AM IN A WIND TUNNEL\rTHERE IS A CLOSED DOOR AT THE END\rTHERE IS ALSO AN EXIT "
-                                            db "TO THE WEST\r",0
-PLACE_COMPUTER_ROOM:                        db "I AM IN A ROOM WITH A COMPUTER IN\rTHE COMPUTER IS WORKING AND HAS A KEYBOARD\rT"
-                                            db "HE EXIT IS WEST\r",0
-PLACE_PASSAGE:                              db "I AM IN A PASSAGE\rTHERE IS A FORCE FIELD TO THE SOUTH : BEWARE OF SECURITY\rTHE"
-                                            db "RE ARE EXITS TO NORTH,EAST AND WEST\r",0
-PLACE_LARGE_HANGER:                         db "I AM IN A LARGE HANGER\rTHERE IS A LOCKED DOOR TO THE WEST\rTHERE ARE ALSO EXITS"
-                                            db " EAST,NORTH AND SOUTH\r",0
-PLACE_TALL_LIFT:                            db "I AM IN A TALL LIFT.THE BUTTONS ARE VERY HIGH\rTHE EXIT IS WEST\r",0
-PLACE_LIFT_CONTROL_ROOM:                    db "I AM IN THE LIFT CONTROL ROOM\rTHERE ARE THREE SWITCHES ON THE WALL.THEY ARE ALL"
-                                            db " OFF\rA SIGN SAYS : 5,4 NO DUSTY BIN RULES\rTHE EXIT IS EAST\r",0
-PLACE_PRISON_CELL:                          db "I AM IN A PRISON CELL\r",0
-PLACE_SPACE_SHIP:                           db "I AM IN A SPACE SHIP.THERE IS NO VISIBLE EXIT\rTHERE IS A SMALL OPEN WINDOW IN T"
-                                            db "HE SIDE\rTHERE ARE ALSO TWO BUTTONS,ONE MARKED MAIN AND THE OTHER AUX.\r",0
+ROOM_DESC_POINTER:                          include text_rooms.asm
 ITEMS_BY_ROOM_TABLE_INIT:                            
                                             db 0x05 ; value = room number, where item is placed
                                             db 0x11
@@ -1005,149 +1026,11 @@ ITEMS_BY_ROOM_TABLE_INIT:
                                             db 0x0F
                                             db 0xFF
 ITEMS_BY_ROOM_TABLE:                        ds 0x1d ; current state of items
-
-ITEM_DESC_POINTER:                          dw OBJECT_A_PAIR_OF_BOOTS 
-                                            dw OBJECT_A_STARTER_MOTOR 
-                                            dw OBJECT_A_KEY 
-                                            dw OBJECT_A_LASER_GUN 
-                                            dw OBJECT_AN_OUT_OF_ORDER_SIGN 
-                                            dw OBJECT_A_METAL_BAR 
-                                            dw OBJECT_A_GOLD_COIN 
-                                            dw OBJECT_A_MIRROR 
-                                            dw OBJECT_BROKEN_GLASS 
-                                            dw OBJECT_A_PAIR_OF_SLIMY_GLOVES 
-                                            dw OBJECT_A_ROPE 
-                                            dw OBJECT_A_FLOOR_BOARD 
-                                            dw OBJECT_A_BROKEN_FLOOR_BOARD 
-                                            dw OBJECT_STALACTITES 
-                                            dw OBJECT_A_BLOCK_OF_ICE 
-                                            dw OBJECT_A_POOL_OF_WATER 
-                                            dw OBJECT_A_SMALL_GREEN_MAN_SLEEPING 
-                                            dw OBJECT_A_SLEEPING_GREEN_MAN 
-                                            dw OBJECT_A_LOCKED_DOOR 
-                                            dw OBJECT_AN_OPEN_DOOR 
-                                            dw OBJECT_A_BARRED_WINDOW 
-                                            dw OBJECT_A_HOLE_IN_THE_WALL 
-                                            dw OBJECT_A_SMALL_BUT_POWERFULL_SPACE_SHIP 
-                                            dw OBJECT_A_SLEEPING_SECURITY_MAN 
-                                            dw OBJECT_A_PIECE_OF_SHARP_FLINT 
-                                            dw OBJECT_SOME_STONES 
-                                            dw OBJECT_A_DRAWING_ON_THE_WALL 
-                                            dw OBJECT_A_LOUDSPEAKER_WITH_DANCE_MUSIC 
-                                            dw 0x0000
-OBJECT_A_PAIR_OF_BOOTS:                     db "A PAIR OF BOOTS",0
-OBJECT_A_STARTER_MOTOR:                     db "A STARTER MOTOR",0
-OBJECT_A_KEY:                               db "A KEY",0
-OBJECT_A_LASER_GUN:                         db "A LASER GUN",0
-OBJECT_AN_OUT_OF_ORDER_SIGN:                db "AN OUT OF ORDER SIGN",0
-OBJECT_A_METAL_BAR:                         db "A METAL BAR",0
-OBJECT_A_GOLD_COIN:                         db "A GOLD COIN",0
-OBJECT_A_MIRROR:                            db "A MIRROR",0
-OBJECT_BROKEN_GLASS:                        db "BROKEN GLASS",0
-OBJECT_A_PAIR_OF_SLIMY_GLOVES:              db "A PAIR OF SLIMY GLOVES",0
-OBJECT_A_ROPE:                              db "A ROPE",0
-OBJECT_A_FLOOR_BOARD:                       db "A FLOOR BOARD",0
-OBJECT_A_BROKEN_FLOOR_BOARD:                db "A BROKEN FLOOR BOARD",0
-OBJECT_STALACTITES:                         db "STALACTITES",0
-OBJECT_A_BLOCK_OF_ICE:                      db "A BLOCK OF ICE",0
-OBJECT_A_POOL_OF_WATER:                     db "A POOL OF WATER",0
-OBJECT_A_SMALL_GREEN_MAN_SLEEPING:          db "A SMALL GREEN MAN SLEEPING ON THE MIRROR",0
-OBJECT_A_SLEEPING_GREEN_MAN:                db "A SLEEPING GREEN MAN",0
-OBJECT_A_LOCKED_DOOR:                       db "A LOCKED DOOR",0
-OBJECT_AN_OPEN_DOOR:                        db "AN OPEN DOOR",0
-OBJECT_A_BARRED_WINDOW:                     db "A BARRED WINDOW",0
-OBJECT_A_HOLE_IN_THE_WALL:                  db "A HOLE IN THE WALL",0
-OBJECT_A_SMALL_BUT_POWERFULL_SPACE_SHIP:    db "A SMALL BUT POWERFULL SPACE SHIP",0
-OBJECT_A_SLEEPING_SECURITY_MAN:             db "A SLEEPING SECURITY MAN",0
-OBJECT_A_PIECE_OF_SHARP_FLINT:              db "A PIECE OF SHARP FLINT",0
-OBJECT_SOME_STONES:                         db "SOME STONES",0
-OBJECT_A_DRAWING_ON_THE_WALL:               db "A DRAWING ON THE WALL",0
-OBJECT_A_LOUDSPEAKER_WITH_DANCE_MUSIC:      db "A LOUDSPEAKER WITH DANCE MUSIC COMING OUT",0
-
+ITEM_DESC_POINTER:                          include text_items.asm
 COMMAND_LIST:                               include commands.asm
 ROOM_NAV_POINTER:                           include navigations.asm
 ACTION_TABLE:                               include actions.asm
-ACTION_POINTER:                             dw IT_SHOWS_A_MAN_CLIMBING 
-                                            dw HOW_I_CANT_REACH 
-                                            dw IT_HAS_FALLEN_TO_THE_FLOOR 
-                                            dw HOW 
-                                            dw ITS_TOO_WIDE.I_FELL_AND_BROKE 
-                                            dw UGH!_HE_IS_ALL_SLIMY 
-                                            dw HE_VANISHED_IN_A_PUFF_OF_SMOKE 
-                                            dw YOU_ALSO_BROKE_THE_MIRROR 
-                                            dw COMPUTER_SAYS 
-                                            dw IT_HAS_WEAKENED_IT 
-                                            dw IT_HAD_NO_EFFECT 
-                                            dw I_FELL_AND_KNOCKED_MYSELF_OUT 
-                                            dw THE_BARS_LOOK_LOOSE 
-                                            dw WHAT_WITH 
-                                            dw I_SEE_A_GOLD_COIN 
-                                            dw BRRR.THE_WATERS_TOO_COLD 
-                                            dw THE_FUSE_HAS_JUST_BLOWN 
-                                            dw THE_LIFT_HAS_BEEN_ACTIVATED 
-                                            dw I_SEE_NOTHING_SPECIAL 
-                                            dw KEEP_OFF_THE_MIDDLE_MEN 
-                                            dw VANITY_WALTZ 
-                                            dw TRY_HELP 
-                                            dw POINTS_OF_COMPASS 
-                                            dw TRY_LOOKING_AROUND 
-                                            dw I_CAN_SEE_A_STEEP_SLOPE 
-                                            dw AN_ALARM_SOUNDS 
-                                            dw I_CAN_SEE_A_ROPE_HANGING_DOWN 
-                                            dw I_AM_NOT_THAT_DAFT 
-                                            dw THE_SPACE_SHIP_BLEW_UP 
-                                            dw THE_SHIP_HAS_FLOWN 
-                                            dw THE_LIFT_HAS_TAKEN_ME_UP 
-                                            dw THE_LIFT_HAS_BECOME_ELECTRIFIED 
-                                            dw I_HAVE_BEEN_ELECTROCUTED 
-                                            dw IT_IS_A_GOOD_JOB_I_WAS_WEARING 
-                                            dw I_WOULD_KILL_MYSELF_IF_I_DID 
-                                            dw I_HAVE_TURNED_GREEN_AND_DROPPED 
-                                            dw s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50 
-                                            dw s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77 
-                                            dw s_WHAT_AT?_ram_7e94 
-                                            dw 0x0000
-IT_SHOWS_A_MAN_CLIMBING:                    db "IT SHOWS A MAN CLIMBING DOWN A PIT USING A ROPE\r",0
-HOW_I_CANT_REACH:                           db "HOW? I CANT REACH\r",0
-IT_HAS_FALLEN_TO_THE_FLOOR:                 db "IT HAS FALLEN TO THE FLOOR\r",0
-HOW:                                        db "HOW?\r",0
-ITS_TOO_WIDE.I_FELL_AND_BROKE:              db "ITS TOO WIDE.I FELL AND BROKE MY NECK\r",0
-UGH!_HE_IS_ALL_SLIMY:                       db "UGH! HE IS ALL SLIMY\r",0
-HE_VANISHED_IN_A_PUFF_OF_SMOKE:             db "HE VANISHED IN A PUFF OF SMOKE\r",0
-YOU_ALSO_BROKE_THE_MIRROR:                  db "YOU ALSO BROKE THE MIRROR\r",0
-COMPUTER_SAYS:                              db "COMPUTER SAYS: 2 WEST,2 SOUTH FOR SPACE FLIGHT\r",0
-IT_HAS_WEAKENED_IT:                         db "IT HAS WEAKENED IT\r",0
-IT_HAD_NO_EFFECT:                           db "IT HAD NO EFFECT\r",0
-I_FELL_AND_KNOCKED_MYSELF_OUT:              db "I FELL AND KNOCKED MYSELF OUT.\r",0
-THE_BARS_LOOK_LOOSE:                        db "THE BARS LOOK LOOSE\r",0
-WHAT_WITH:                                  db "WHAT WITH?\r",0
-I_SEE_A_GOLD_COIN:                          db "I SEE A GOLD COIN\r",0
-BRRR.THE_WATERS_TOO_COLD:                   db "BRRR.THE WATERS TOO COLD\r",0
-THE_FUSE_HAS_JUST_BLOWN:                    db "THE FUSE HAS JUST BLOWN\r",0
-THE_LIFT_HAS_BEEN_ACTIVATED:                db "THE LIFT HAS BEEN ACTIVATED\r",0
-I_SEE_NOTHING_SPECIAL:                      db "I SEE NOTHING SPECIAL\r",0
-KEEP_OFF_THE_MIDDLE_MEN:                    db "KEEP OFF THE MIDDLE MEN,ONE MAY BE SHOCKING!\r",0
-VANITY_WALTZ:                               db "VANITY WALTZ!\r",0
-TRY_HELP:                                   db "TRY HELP\r",0
-POINTS_OF_COMPASS:                          db "POINTS OF COMPASS\r",0
-TRY_LOOKING_AROUND:                         db "TRY LOOKING AROUND\r",0
-I_CAN_SEE_A_STEEP_SLOPE:                    db "I CAN SEE A STEEP SLOPE\r",0
-AN_ALARM_SOUNDS:                            db "AN ALARM SOUNDS.THE SECURITY GUARD SHOT ME FOR TRESPASSING.\r",0
-I_CAN_SEE_A_ROPE_HANGING_DOWN:              db "I CAN SEE A ROPE HANGING DOWN THE CHIMNEY.\r",0
-I_AM_NOT_THAT_DAFT:                         db "I AM NOT THAT DAFT.IT IS TOO DEEP.\r",0
-THE_SPACE_SHIP_BLEW_UP:                     db "THE SPACE SHIP BLEW UP AND KILLED ME.\r",0
-THE_SHIP_HAS_FLOWN:                         db "THE SHIP HAS FLOWN INTO THE LARGE LIFT AND IS HOVERING THERE.\rTHERE ARE FOUR BU"
-                                            db "TTONS OUTSIDE THE WINDOW MARKED 1,2,3 AND 4\r",0
-THE_LIFT_HAS_TAKEN_ME_UP:                   db "THE LIFT HAS TAKEN ME UP TO A PLATEAU.\rCONGRATULATIONS, YOU HAVE MANAGED TO COM"
-                                            db "PLETE THIS ADVENTURE\rWITHOUT GETTING KILLED.\r",0
-THE_LIFT_HAS_BECOME_ELECTRIFIED:            db "THE LIFT HAS BECOME ELECTRIFIED\r",0
-I_HAVE_BEEN_ELECTROCUTED:                   db "I HAVE BEEN ELECTROCUTED\r",0
-IT_IS_A_GOOD_JOB_I_WAS_WEARING:             db "IT IS A GOOD JOB I WAS WEARING RUBBER SOLED BOOTS.\r",0
-I_WOULD_KILL_MYSELF_IF_I_DID:               db "I WOULD KILL MYSELF IF I DID.\r",0
-I_HAVE_TURNED_GREEN_AND_DROPPED:            db "I HAVE TURNED GREEN AND DROPPED DEAD.\r",0
-s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50:db "THE GREEN MAN AWOKE AND THROTTLED ME.\r",0
-s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77:     db "THE GUARD WOKE AND SHOT ME.\r",0
-s_WHAT_AT?_ram_7e94:                        db "WHAT AT?\r",0
+ANSWER_POINTER:                             include text_answers.asm
 VALIDATOR0:                                 db 0x06 ; PROC6(5,1)
                                             db 0x05 ; IX+5
                                             db 0x01 ; ==1
@@ -1179,40 +1062,40 @@ VALIDATOR4:                                 db 0x06 ; PROC6(2,1)
                                             db 0x0E ; OBJECT_A_BLOCK_OF_ICE
                                             db 0xFF
 VALIDATOR5:                                 db 0xFF ; no validation
-ACTION_DIE_GREEN:                           db 0x05 ; CMD_DEATH
+ACTION_DIE_GREEN:                           db 0x05 ; CMD_PRINT_ANSWER
                                             db 0x23 ; I_HAVE_TURNED_GREEN_AND_DROPPED
                                             db 0x0C ; CMD_END
-ACTION_DIE_THROTT:                          db 0x05 ; CMD_DEATH
+ACTION_DIE_THROTT:                          db 0x05 ; CMD_PRINT_ANSWER
                                             db 0x24 ; s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50
                                             db 0x0C ; CMD_END
-ACTION_DIE_SHOT:                            db 0x05 ; CMD_DEATH
+ACTION_DIE_SHOT:                            db 0x05 ; CMD_PRINT_ANSWER
                                             db 0x25 ; s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77
                                             db 0x0C ; CMD_END
 ACTION_SWAP_ICE:                            db 0x0B ; CMD_SWAP_ITEM
                                             db 0x0E ; item number OBJECT_A_BLOCK_OF_ICE and OBJECT_A_POOL_OF_WATER
 ACTION_TELL_ME:                             db 0x15 ; CMD_TELL_ME
-DEFAULT_TABLE:                              db 0xFF 
-                                            db 0xFF 
+DEFAULT_TABLE:                              db COMMAND_ANY 
+                                            db COMMAND_ANY 
                                             dw VALIDATOR0 
                                             dw ACTION_DIE_GREEN 
-                                            db 0xFF
-                                            db 0xFF
+                                            db COMMAND_ANY
+                                            db COMMAND_ANY
                                             dw VALIDATOR1 
                                             dw ACTION_DIE_THROTT 
-                                            db 0xFF
-                                            db 0xFF
+                                            db COMMAND_ANY
+                                            db COMMAND_ANY
                                             dw VALIDATOR2 
                                             dw ACTION_DIE_THROTT 
-                                            db 0xFF
-                                            db 0xFF
+                                            db COMMAND_ANY
+                                            db COMMAND_ANY
                                             dw VALIDATOR3 
                                             dw ACTION_DIE_SHOT 
-                                            db 0xFF
-                                            db 0xFF
+                                            db COMMAND_ANY
+                                            db COMMAND_ANY
                                             dw VALIDATOR4 
                                             dw ACTION_SWAP_ICE 
-                                            db 0xFF
-                                            db 0xFF
+                                            db COMMAND_ANY
+                                            db COMMAND_ANY
                                             dw VALIDATOR5 
                                             dw ACTION_TELL_ME 
                                             db 0x00
@@ -1241,7 +1124,6 @@ KEY_LOOP:                                   LD HL,KEYBOARD.LASTK ;getting key in
                                             CALL SCREEN.PRINT_CHAR
 
                                             JP KEY_LOOP
-
 
 BASIC_RUNNER                                LD HL,0x5C3b
                                             LD (HL),0xCC

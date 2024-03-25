@@ -1,81 +1,6 @@
-                                            DEVICE ZXSPECTRUM48
+
 
                                             include defines.asm
-
-                                            define COMMAND_DOWN 0x01
-                                            define COMMAND_NORT 0x02
-                                            define COMMAND_SOUT 0x03
-                                            define COMMAND_EAST 0x04
-                                            define COMMAND_WEST 0x05
-                                            define COMMAND_GET 0x0D
-                                            define COMMAND_PUT 0x0E
-                                            define COMMAND_FIRE 0x0F
-			                                define COMMAND_BOOT 0x10 
-			                                define COMMAND_STAR 0x11 
-			                                define COMMAND_KEY 0x12 
-			                                define COMMAND_GUN 0x13 
-                                            define COMMAND_USED 0x14 
-                                            define COMMAND_BAR 0x15    
-                                            define COMMAND_COIN 0x16 
-                                            define COMMAND_MIRR 0x17
-                                            define COMMAND_BROK 0x18
-                                            define COMMAND_GLOV 0x19
-                                            define COMMAND_ROPE 0x1A
-                                            define COMMAND_FLOO 0x1B 
-                                            define COMMAND_STAL 0x1C
-                                            define COMMAND_ICE 0x1D  
-                                            define COMMAND_WATE 0x1E     
-                                            define COMMAND_MAN 0x1F                                                                                                                                                                                                                       
-                                            define COMMAND_DOOR 0x20 
-                                            define COMMAND_OPEN 0x21 
-                                            define COMMAND_WIND 0x22 
-                                            define COMMAND_SHIP 0x23 
-                                            define COMMAND_SECU 0x24
-                                            define COMMAND_FLIN 0x25
-                                            define COMMAND_STON 0x26
-                                            define COMMAND_DRAW 0x27    
-                                            define COMMAND_HELP 0x28                                             
-                                            define COMMAND_INVE 0x29 
-                                            define COMMAND_STOP 0x2A
-                                            define COMMAND_YES 0x2B                                            
-                                            define COMMAND_NO 0x2C 
-                                            define COMMAND_KEYB 0x2D 
-                                            define COMMAND_TYPE 0x2E 
-                                            define COMMAND_TURN 0x2F  
-                                            define COMMAND_HAND 0x30                                                                                        
-                                            define COMMAND_KILL 0x31  
-                                            define COMMAND_DANC 0x32 
-                                            define COMMAND_REMO 0x33     
-                                            define COMMAND_HIT 0x34                                             
-                                            define COMMAND_BRIB 0x35
-                                            define COMMAND_USE 0x36
-                                            define COMMAND_PUSH 0x37
-                                            define COMMAND_3 0x38
-                                            define COMMAND_2 0x39
-                                            define COMMAND_1 0x3A
-                                            define COMMAND_FIX 0x3B
-                                            define COMMAND_4 0x3C
-                                            define COMMAND_LOOK 0x3D
-                                            define COMMAND_STAN 0x3E
-                                            define COMMAND_TREE 0x3F
-                                            define COMMAND_CUT 0x40
-                                            define COMMAND_WEAR 0x41
-                                            define COMMAND_CROS 0x42
-                                            define COMMAND_JUMP 0x43
-                                            define COMMAND_RAVI 0x44
-                                            define COMMAND_UP 0x45
-                                            define COMMAND_FUSE 0x46
-                                            define COMMAND_REDE 0x47
-                                            define COMMAND_MAIN 0x48
-                                            define COMMAND_AUX 0x49
-                                            define COMMAND_FIEL 0x4A
-                                            define COMMAND_ANY 0xFF
-
-                                            ;define IS_CURRENT_ROOM 0x00
-                                            ;define IS_CURRENT_ROOM 0x01
-                                            ;define IS_CURRENT_ROOM 0x02
-                                            ;define IS_CURRENT_ROOM 0x03
-
 
 	                                        define VAR_FLAG_CANT_DO IX-0x8
                                             define VAR_PROC_PARAM IX-0x7
@@ -92,7 +17,6 @@
                                             define VAR_START_E IX+0x4                                                                                                                             
 
                                             module GAME
-                                            org 0x5d40
                                             db 0x00; IX-8 VAR_FLAG_CANT_DO
 VAR_PROC_PARAM_ADDR:                        db 0x00; IX-7
                                             db 0x00; IX-6
@@ -132,12 +56,12 @@ VARS:                                       ; clear on init 0x1e length = 30
                                             db 0xF1 ; IX+1B
                                             db 0xDD ; IX+1C
                                             db 0xE1 ; IX+1D
-VAR_CMD_BUF0:                               dw 0xd1c1
-VAR_CMD_BUF1:                               dw 0xf5e1
+VAR_CMD_BUF0:                               dw 0x0000
+VAR_CMD_BUF1:                               dw 0x0000
 VAR_SCORE:                                  dw 0x0000
 ENTRY_POINT:                                LD HL,VARS
                                             LD B,0x1e
-CLEAR_VARS:                               LD (HL),0x0
+CLEAR_VARS:                                 LD (HL),0x0
                                             INC HL
                                             DJNZ CLEAR_VARS
                                             LD HL,0x0
@@ -150,9 +74,7 @@ CLEAR_VARS:                               LD (HL),0x0
                                             LD IX,VARS
                                             LD (VAR_CURRENT_ROOM),0x0 ; starting from room 0
                                             PUSH HL
-                                            JR ASK_RESTORE_GAME
-TEXT_RESTORE_GAME:                          db "WANT TO RESTORE A GAME?\r",0
-ASK_RESTORE_GAME:                           LD HL,TEXT_RESTORE_GAME 
+                                            LD HL,TEXT_RESTORE_GAME 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
@@ -169,9 +91,7 @@ LIGHT_CHECK:                                LD A,(ITEMS_BY_ROOM_TABLE) ; startin
                                             CP (VAR_CURRENT_ROOM)
                                             JR Z,PRINT_ROOM
                                             PUSH HL
-                                            JR STATE_DARK
-TEXT_EVERYTHING_DARK:                       db "EVERYTHING IS DARK.I CANT SEE.\r",0
-STATE_DARK:                                 LD HL,TEXT_EVERYTHING_DARK 
+                                            LD HL,TEXT_EVERYTHING_DARK 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             XOR A
@@ -201,9 +121,7 @@ PRINT_ITEMS:                                LD A,(HL)
                                             CP (VAR_TEMP) 
                                             JR NZ,PRINT_NEXT_ITEM
                                             PUSH HL
-                                            JR PRINT_ASLO_SEE
-TEXT_ALSO_SEE:                              db "I CAN ALSO SEE :\r",0
-PRINT_ASLO_SEE:                             LD HL,TEXT_ALSO_SEE 
+                                            LD HL,TEXT_ALSO_SEE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             INC (VAR_TEMP)
@@ -233,9 +151,7 @@ CMD_TELL_ME:                                POP BC
 LAB_ram_5e7c:                               CP (IX+0x5)
                                             JR Z,LAB_ram_5e84
                                             DEC (IX+0x5)
-LAB_ram_5e84:                               JR LAB_ram_5e9b
-TEXT_TELL_ME:                               db "TELL ME WHAT TO DO \r",0
-LAB_ram_5e9b:                               LD HL,TEXT_TELL_ME 
+LAB_ram_5e84:                               LD HL,TEXT_TELL_ME 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             CALL READ_LINE
                                             LD (VAR_FLAG_CANT_DO),0x0
@@ -249,9 +165,7 @@ SKIP_SPACES:                                CALL CMD_DECODE
                                             OR A
                                             JR NZ,LOOP_SPACES
 UNKNOWN_COMMAND:                            PUSH HL 
-                                            JR LAB_ram_5ed0
-TEXT_DONT_UNDERSTAND:                       db "I DONT UNDERSTAND\r",0
-LAB_ram_5ed0:                               LD HL,TEXT_DONT_UNDERSTAND 
+                                            LD HL,TEXT_DONT_UNDERSTAND 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JR PARSE_DEFAULTS
@@ -326,23 +240,17 @@ PARSE_PROC:                                 LD A,(HL) ; pointed to DEFAULT_TABLE
                                             OR A
                                             JR NZ,CANT_DO_YET ; 
                                             PUSH HL                                             
-                                            JR PRINT_CANT
-TEXT_I_CANT:                                db "I CANT\r",0
-PRINT_CANT:                                 LD HL,TEXT_I_CANT 
+                                            LD HL,TEXT_I_CANT 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP PARSE_DEFAULTS
 CANT_DO_YET:                                PUSH HL                                             
-                                            JR PRINT_CANT_DO_YET
-TEXT_I_CANT_DO_YET:                         db "I CANT DO THAT YET\r",0
-PRINT_CANT_DO_YET:                          LD HL,TEXT_I_CANT_DO_YET 
+                                            LD HL,TEXT_I_CANT_DO_YET 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP PARSE_DEFAULTS
 PRINT_CANT_GO:                              PUSH HL  
-                                            JR PRINT_CANT_GO_TEXT
-TEXT_I_CANT_GO:                             db "I CANT GO IN THAT DIRECTION\r",0
-PRINT_CANT_GO_TEXT:                         LD HL,TEXT_I_CANT_GO 
+                                            LD HL,TEXT_I_CANT_GO 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP PARSE_DEFAULTS
@@ -530,9 +438,7 @@ CMD_POINTER:                                dw CMD_INVENTORY
                                             dw CMD_LOOP
                                             dw CMD_LOOP
 CMD_INVENTORY:                              PUSH HL
-                                            JR LAB_ram_615c
-TEXT_HAVE_WITH_ME:                          db "I HAVE WITH ME THE FOLLOWING:\r",0
-LAB_ram_615c:                               LD HL,TEXT_HAVE_WITH_ME 
+                                            LD HL,TEXT_HAVE_WITH_ME 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             LD (VAR_TEMP),0x0
@@ -562,9 +468,7 @@ LOOP_INVENTORY:                             LD A,(HL)
                                             LD HL,TEXT_WHICH_I_AM_WEARING 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
-                                            JR ITEM_NOT_WEARED
-TEXT_WHICH_I_AM_WEARING:                    db " WHICH I AM WEARING",0
-ITEM_NOT_WEARED:                            CALL SCREEN.PRINT_CR
+ITEM_NOT_WEARED                             CALL SCREEN.PRINT_CR
 NEXT_SCAN_ITEM:                             INC HL
                                             INC C
                                             JR LOOP_INVENTORY
@@ -572,9 +476,7 @@ INVENTORY_EMPTY:                            XOR A
                                             CP (VAR_TEMP)
                                             JP NZ,CMD_LOOP
                                             PUSH HL
-                                            JR LAB_ram_61cd
-TEXT_NOTHING:                               db "NOTHING AT ALL\r",0
-LAB_ram_61cd:                               LD HL,TEXT_NOTHING 
+                                            LD HL,TEXT_NOTHING 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
@@ -582,9 +484,7 @@ CMD_UNWEAR_ITEM:                            CALL GET_ROOM_OF_ITEM
                                             CP 0xfd
                                             JR Z,IS_ITEM_WEARED
                                             PUSH HL
-                                            JR LAB_ram_61f6
-TEXT_NOT_WEARING:                           db "I AM NOT WEARING IT\r",0
-LAB_ram_61f6:                               LD HL,TEXT_NOT_WEARING 
+                                            LD HL,TEXT_NOT_WEARING 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
@@ -592,9 +492,7 @@ IS_ITEM_WEARED:                             LD A,(VAR_ITEMS_COUNT)
                                             CP 0x6
                                             JR NZ,IS_SPACE_ENOUGH
                                             PUSH HL
-                                            JR LAB_ram_6225
-TEXT_HAND_FULL:                             db "I CANT. MY HANDS ARE FULL\r",0
-LAB_ram_6225:                               LD HL,TEXT_HAND_FULL 
+                                            LD HL,TEXT_HAND_FULL 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
@@ -605,9 +503,7 @@ CMD_GET_ITEM:                               LD A,(VAR_ITEMS_COUNT)
                                             CP 0x6 ; max items in inventory
                                             JR NZ,SPACE_IS_ENOUGH
                                             PUSH HL
-                                            JR LAB_ram_6258
-TEXT_CANT_CARRY:                            db "I CANT CARRY ANY MORE\r",0
-LAB_ram_6258:                               LD HL,TEXT_CANT_CARRY 
+                                            LD HL,TEXT_CANT_CARRY 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
@@ -624,11 +520,8 @@ LAB_ram_6272:                               CP 0xfd
                                             LD HL,TEXT_I_DONT_SEE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             JP CMD_LOOP
-TEXT_I_DONT_SEE:                            db "I DON'T SEE IT HERE\r",0
 LAB_ram_6298:                               PUSH HL
-                                            JR LAB_ram_62ae
-TEXT_ALREADY_HAVE:                          db "I ALREADY HAVE IT\r",0
-LAB_ram_62ae:                               LD HL,TEXT_ALREADY_HAVE 
+                                            LD HL,TEXT_ALREADY_HAVE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
@@ -636,9 +529,7 @@ CMD_DROP_ITEM:                              CALL GET_ROOM_OF_ITEM
                                             CP (VAR_CURRENT_ROOM)
                                             JR NZ,LAB_ram_62dd
 ITEM_IN_INVENTORY_BUT_WEARED:               PUSH HL
-                                            JR LAB_ram_62d3
-TEXT_I_DONT_HAVE:                           db "I DONT HAVE IT\r",0
-LAB_ram_62d3:                               LD HL,TEXT_I_DONT_HAVE 
+                                            LD HL,TEXT_I_DONT_HAVE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
@@ -659,16 +550,12 @@ CMD_WEAR_ITEM:                              CALL GET_ROOM_OF_ITEM
 WEAR_NOT_IN_INVENTORY:                      CP 0xfd
                                             JR NZ,WEAR_NOT_WEARED
                                             PUSH HL
-                                            JR LAB_ram_631e
-TEXT_ALREADY_WEAR:                          db "I AM ALREADY WEARING IT\r",0
-LAB_ram_631e:                               LD HL,TEXT_ALREADY_WEAR 
+                                            LD HL,TEXT_ALREADY_WEAR 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 WEAR_NOT_WEARED:                            PUSH HL
-                                            JR LAB_ram_633b
-TEXT_I_DONT_HAVE_IT:                        db "I DONT HAVE IT\r",0
-LAB_ram_633b:                               LD HL,TEXT_I_DONT_HAVE_IT 
+                                            LD HL,TEXT_I_DONT_HAVE_IT 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
@@ -689,10 +576,10 @@ CMD_LOOK_AROUND:                            POP BC
 CMD_NOTHING:                                POP BC
                                             POP HL
                                             JP PARSE_DEFAULTS
-CMD_SET_CURRENT_ROOM:                                   LD A,(VAR_PROC_PARAM)
+CMD_SET_CURRENT_ROOM:                       LD A,(VAR_PROC_PARAM)
                                             LD (VAR_CURRENT_ROOM),A
                                             JR CMD_ENDED
-CMD_VAR_TO_FF:                                   LD HL,VARS ; set (IX+PARAM0) = 0xff
+CMD_VAR_TO_FF:                              LD HL,VARS ; set (IX+PARAM0) = 0xff
                                             LD B,0x0
                                             LD C,(VAR_PROC_PARAM)
                                             ADD HL,BC
@@ -716,16 +603,12 @@ CMD_SWAP_ITEM:                              CALL GET_ROOM_OF_ITEM
                                             JR CMD_ENDED
 CMD_END:                                    JP TRY_AGAIN
 CMD_OK:                                     PUSH HL
-                                            JR LAB_ram_639e
-TEXT_OK:                                    db "OK..\r",0
-LAB_ram_639e:                               LD HL,TEXT_OK 
+                                            LD HL,TEXT_OK 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_SAVE:                                   PUSH HL
-                                            JR LAB_ram_63ca
-TEXT_WANT_SAVE:                             db "DO YOU WANT TO SAVE THE GAME?\r",0
-LAB_ram_63ca:                               LD HL,TEXT_WANT_SAVE 
+                                            LD HL,TEXT_WANT_SAVE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
@@ -735,9 +618,7 @@ LAB_ram_63ca:                               LD HL,TEXT_WANT_SAVE
                                             LD IX,GAME_STATE
                                             LD DE,0x2b
                                             PUSH HL
-                                            JR LAB_ram_63f4
-TEXT_READY_TYPE:                            db "READY CASSETTE\r",0
-LAB_ram_63f4:                               LD HL,TEXT_READY_TYPE 
+                                            LD HL,TEXT_READY_TYPE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
@@ -751,24 +632,18 @@ LAB_ram_63f4:                               LD HL,TEXT_READY_TYPE
                                             CALL 0x04c2
                                             POP IX
                                             PUSH HL
-                                            JR LAB_ram_6430
-TEXT_CONTINUE:                              db "DO YOU WISH TO CONTINUE?\r",0
-LAB_ram_6430:                               LD HL,TEXT_CONTINUE 
+                                            LD HL,TEXT_CONTINUE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             CP 0x59
                                             JP Z,CMD_LOOP
 TRY_AGAIN:                                  PUSH HL
-                                            JR LAB_ram_645d
-TEXT_TRY_AGAIN:                             db "DO YOU WISH TO TRY AGAIN?\r",0
-LAB_ram_645d:                               LD HL,TEXT_TRY_AGAIN 
+                                            LD HL,TEXT_TRY_AGAIN 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
 CHECK_YES_NO:                               PUSH HL
-                                            JR LAB_ram_6479
-TEXT_ANSWER:                                db "ANSWER YES OR NO\r",0
-LAB_ram_6479:                               LD HL,TEXT_ANSWER 
+                                            LD HL,TEXT_ANSWER 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
@@ -820,8 +695,6 @@ CMD_SCORE:                                  LD A,(VAR_SCORE)
                                             ADC A,(HL)
                                             DAA
                                             LD (VAR_SCORE+1),A
-                                            JP CMD_ENDED
-TEXT_SCORE:                                 db "YOU HAVE A SCORE OF ",0
 CMD_GAME:                                   LD HL,TEXT_SCORE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             LD A,(VAR_SCORE+1)
@@ -839,7 +712,6 @@ PRINT_SCORE:                                PUSH AF
                                             RRA
                                             CALL SCREEN.PRINT_DIGIT
                                             POP AF
-
 CMD_DECODE:                                 PUSH HL ; HL pointed to input buffer, command code return in A, ff - command not found HL not changed
                                             LD HL,0x2020 ; two spaces
                                             LD (VAR_CMD_BUF0),HL 
@@ -888,9 +760,7 @@ CMD_LIST_ENDED:                             POP AF
 CMD_NOT_EQUAL:                              INC HL
                                             JR CMD_NEXT_COMMAND
 GAME_RESTORED:                              PUSH HL
-                                            JR LAB_ram_658a
-TEXT_READY_CASSETE:                         db "READY CASSETTE\r",0
-LAB_ram_658a:                               LD HL,TEXT_READY_CASSETE 
+                                            LD HL,TEXT_READY_CASSETE 
                                             CALL SCREEN.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
@@ -910,12 +780,6 @@ LAB_ram_658a:                               LD HL,TEXT_READY_CASSETE
 GAME_INIT:                                  CALL INIT_SCREEN
                                             LD HL,TEXT_WELCOME 
                                             CALL SCREEN.PRINT_TEXT_WRAP
-                                            JP WAIT_KEY
-TEXT_WELCOME:                               db "WELCOME TO ADVENTURE 'A'\rTHE PLANET OF DEATH\r\rIN THIS ADVENTURE YOU FIND YOUR"
-                                            db "SELF STRANDED ON AN ALIEN PLANET. YOUR AIM IS TO ESCAPE FROM THIS PLANET BY FIND"
-                                            db "ING YOUR, NOW CAPTURED AND DISABLED, SPACE SHIP\rYOU WILL MEET VARIOUS HAZARDS A"
-                                            db "ND DANGERS ON YOUR ADVENTURE, SOME NATURAL, SOME NOT, ALL OF WHICH YOU MUST OVER"
-                                            db "COME TO SUCCEED\r\rGOOD LUCK, YOU WILL NEED IT!\r\rPRESS ANY KEY TO START\r",0
 WAIT_KEY:                                   XOR A
                                             LD (KEYBOARD.LASTK),A
 WRONG_KEY:                                  LD A,(KEYBOARD.LASTK)
@@ -929,30 +793,6 @@ WRONG_KEY:                                  LD A,(KEYBOARD.LASTK)
                                             RET C
                                             SUB 0x20 ; lower to caps
                                             RET
-                                            db 0xD5
-                                            db 0x57
-                                            db 0x3E
-                                            db 0x7F
-                                            db 0xDB
-                                            db 0xFE
-                                            db 0x1F
-                                            db 0x38
-                                            db 0x0D
-                                            db 0x3E
-                                            db 0xFE
-                                            db 0xDB
-                                            db 0xFE
-                                            db 0x1F
-                                            db 0x38
-                                            db 0x06
-                                            db 0x3E
-                                            db 0x01
-                                            db 0xB7
-LAB_ram_6787:                               LD A,D
-                                            POP DE
-                                            RET
-                                            XOR A
-                                            JR LAB_ram_6787
 READ_LINE_START:                            PUSH HL
                                             LD B,0x20
 INPUT_LINE_LOOP:                            LD (HL),0x0
@@ -1026,155 +866,12 @@ ITEMS_BY_ROOM_TABLE_INIT:
                                             db 0x0F
                                             db 0xFF
 ITEMS_BY_ROOM_TABLE:                        ds 0x1d ; current state of items
+
+                                            include text_commons.asm
 ITEM_DESC_POINTER:                          include text_items.asm
-COMMAND_LIST:                               include commands.asm
+COMMAND_LIST:                               include text_commands.asm
 ROOM_NAV_POINTER:                           include navigations.asm
 ACTION_TABLE:                               include actions.asm
 ANSWER_POINTER:                             include text_answers.asm
-VALIDATOR0:                                 db 0x06 ; PROC6(5,1)
-                                            db 0x05 ; IX+5
-                                            db 0x01 ; ==1
-                                            db 0x05 ; PROC5(6)
-                                            db 0x06 ; IX+6!=0
-                                            db 0xFF
-VALIDATOR1:                                 db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; IX+2
-                                            db 0x01 ; ==1
-                                            db 0x01 ; PROC1(0x10) is item available
-                                            db 0x10 ; OBJECT_A_SMALL_GREEN_MAN_SLEEPING
-                                            db 0xFF
-VALIDATOR2:                                 db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; IX+2
-                                            db 0x01 ; ==1
-                                            db 0x01 ; PROC1(0x11) is item available
-                                            db 0x11 ; OBJECT_A_SLEEPING_GREEN_MAN
-                                            db 0xFF
-VALIDATOR3:                                 db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; IX+2
-                                            db 0x01 ; ==1
-                                            db 0x01 ; PROC1(0x17) is item available
-                                            db 0x17 ; OBJECT_A_SLEEPING_SECURITY_MAN
-                                            db 0xFF
-VALIDATOR4:                                 db 0x06 ; PROC6(2,1)
-                                            db 0x02 ; IX+2
-                                            db 0x01 ; ==1
-                                            db 0x01 ; PROC1(0x0e)
-                                            db 0x0E ; OBJECT_A_BLOCK_OF_ICE
-                                            db 0xFF
-VALIDATOR5:                                 db 0xFF ; no validation
-ACTION_DIE_GREEN:                           db 0x05 ; CMD_PRINT_ANSWER
-                                            db 0x23 ; I_HAVE_TURNED_GREEN_AND_DROPPED
-                                            db 0x0C ; CMD_END
-ACTION_DIE_THROTT:                          db 0x05 ; CMD_PRINT_ANSWER
-                                            db 0x24 ; s_THE_GREEN_MAN_AWOKE_AND_THROTTLE_ram_7e50
-                                            db 0x0C ; CMD_END
-ACTION_DIE_SHOT:                            db 0x05 ; CMD_PRINT_ANSWER
-                                            db 0x25 ; s_THE_GUARD_WOKE_AND_SHOT_ME._ram_7e77
-                                            db 0x0C ; CMD_END
-ACTION_SWAP_ICE:                            db 0x0B ; CMD_SWAP_ITEM
-                                            db 0x0E ; item number OBJECT_A_BLOCK_OF_ICE and OBJECT_A_POOL_OF_WATER
-ACTION_TELL_ME:                             db 0x15 ; CMD_TELL_ME
-DEFAULT_TABLE:                              db COMMAND_ANY 
-                                            db COMMAND_ANY 
-                                            dw VALIDATOR0 
-                                            dw ACTION_DIE_GREEN 
-                                            db COMMAND_ANY
-                                            db COMMAND_ANY
-                                            dw VALIDATOR1 
-                                            dw ACTION_DIE_THROTT 
-                                            db COMMAND_ANY
-                                            db COMMAND_ANY
-                                            dw VALIDATOR2 
-                                            dw ACTION_DIE_THROTT 
-                                            db COMMAND_ANY
-                                            db COMMAND_ANY
-                                            dw VALIDATOR3 
-                                            dw ACTION_DIE_SHOT 
-                                            db COMMAND_ANY
-                                            db COMMAND_ANY
-                                            dw VALIDATOR4 
-                                            dw ACTION_SWAP_ICE 
-                                            db COMMAND_ANY
-                                            db COMMAND_ANY
-                                            dw VALIDATOR5 
-                                            dw ACTION_TELL_ME 
-                                            db 0x00
-                                            db 0x52
-                                            db 0x4F
-                                            db 0x4C
-                                            db 0x20
-                                            db 0x52
-                                            db 0x4F
-END_OF_DATA:                                db 0x00
-                                            endmodule
-
-DEBUG_TEXT:                                 LD A, CLR_BLACK<<3 | CLR_GREEN 
-                                            CALL SCREEN.CLEAR
-                             
-                                            LD HL,SCREEN.POS_Y
-                                            LD (HL),23
-                                            INC HL
-                                             LD (HL),23
-
-KEY_LOOP:                                   LD HL,KEYBOARD.LASTK ;getting key in A - capitalized 
-                                            LD A,(HL)
-                                            LD (HL),0x0
-                                            CP 0
-                                            JR Z,KEY_LOOP
-                                            CALL SCREEN.PRINT_CHAR
-
-                                            JP KEY_LOOP
-
-BASIC_RUNNER                                LD HL,0x5C3b
-                                            LD (HL),0xCC
-                                            ; im2
-                                            DI  
-                                            LD A,0xBA
-                                            LD I,A
-                                            IM 2
-                                            EI
-                                            JP GAME.ENTRY_POINT
-                                            ;JP DEBUG_TEXT
-
-                                            ORG  0xBA00
-                                            DEFS 257,0xBB
-
-                                            ORG 0xBBBB
-                                            DI
-                                            PUSH AF                
-                                            PUSH BC                                               
-                                            PUSH DE                                               
-                                            PUSH IX                                               
-                                            PUSH IY                                              
-                                            PUSH HL  
-
-                                            call KEYBOARD.KEYBOARD
-
-                                            ;XOR A
-                                            ;LD (23560),A
-                                            ;LD IY,#5C3A
-                                            ;RST 56
-                                            LD a,(23560) 
-                                            LD (16385),A
-                                            LD a,(KEYBOARD.LASTK) 
-                                            LD (1638),A
-
-                                            LD a,(16384)
-                                            xor 255
-                                            ld (16384),a
-
-                                            POP HL 
-                                            POP IY
-                                            POP IX     
-                                            POP DE
-                                            POP BC                                                                                                                                        
-                                            POP AF                                                                                                                                                                                                   
-                                            EI
-                                            RET
-
-                                            include keyboard.asm
-                                            include screen.asm
-                                            include output.asm
-
-                                            SAVESNA "adventurea.sna",BASIC_RUNNER
-                                            SAVEBIN "adventurea.bin",23500, 9000
+DEFAULT_TABLE:                              include actions_default.asm
+END_OF_DATA:                                endmodule

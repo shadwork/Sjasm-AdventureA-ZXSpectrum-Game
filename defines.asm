@@ -1,5 +1,3 @@
-
-
 	define CLR_BLACK %000000
 	define CLR_BLUE %000001
 	define CLR_RED %000010
@@ -13,3 +11,5 @@
   MACRO COLOR ink, paper
     LD A,(ink + paper<<3) 
   ENDM
+
+

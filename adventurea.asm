@@ -75,7 +75,7 @@ CLEAR_VARS:                                 LD (HL),0x0
                                             LD (VAR_CURRENT_ROOM),0x0 ; starting from room 0
                                             PUSH HL
                                             LD HL,TEXT_RESTORE_GAME 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             CP 'Y'
@@ -92,7 +92,7 @@ LIGHT_CHECK:                                LD A,(ITEMS_BY_ROOM_TABLE) ; startin
                                             JR Z,PRINT_ROOM
                                             PUSH HL
                                             LD HL,TEXT_EVERYTHING_DARK 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             XOR A
                                             CP (VAR_START_E)
@@ -108,7 +108,7 @@ PRINT_ROOM:                                 LD DE,ROOM_DESC_POINTER
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             LD (VAR_TEMP),0x0
                                             LD HL,ITEMS_BY_ROOM_TABLE
                                             LD C,0x0 ; from first item
@@ -122,7 +122,7 @@ PRINT_ITEMS:                                LD A,(HL)
                                             JR NZ,PRINT_NEXT_ITEM
                                             PUSH HL
                                             LD HL,TEXT_ALSO_SEE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             INC (VAR_TEMP)
 PRINT_NEXT_ITEM:                            PUSH HL
@@ -134,8 +134,8 @@ PRINT_NEXT_ITEM:                            PUSH HL
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL SCREEN.PRINT_TEXT_WRAP
-                                            CALL SCREEN.PRINT_CR
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_CR
                                             POP HL
 NEXT_ROOM_FOR_ITEM:                         INC HL
                                             INC C
@@ -152,7 +152,7 @@ LAB_ram_5e7c:                               CP (IX+0x5)
                                             JR Z,LAB_ram_5e84
                                             DEC (IX+0x5)
 LAB_ram_5e84:                               LD HL,TEXT_TELL_ME 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             CALL READ_LINE
                                             LD (VAR_FLAG_CANT_DO),0x0
 SKIP_SPACES:                                CALL CMD_DECODE
@@ -166,7 +166,7 @@ SKIP_SPACES:                                CALL CMD_DECODE
                                             JR NZ,LOOP_SPACES
 UNKNOWN_COMMAND:                            PUSH HL 
                                             LD HL,TEXT_DONT_UNDERSTAND 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JR PARSE_DEFAULTS
 LOOP_SPACES:                                LD A,(HL)                                            
@@ -241,17 +241,17 @@ PARSE_PROC:                                 LD A,(HL) ; pointed to DEFAULT_TABLE
                                             JR NZ,CANT_DO_YET ; 
                                             PUSH HL                                             
                                             LD HL,TEXT_I_CANT 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP PARSE_DEFAULTS
 CANT_DO_YET:                                PUSH HL                                             
                                             LD HL,TEXT_I_CANT_DO_YET 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP PARSE_DEFAULTS
 PRINT_CANT_GO:                              PUSH HL  
                                             LD HL,TEXT_I_CANT_GO 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP PARSE_DEFAULTS
                                             NOP
@@ -439,7 +439,7 @@ CMD_POINTER:                                dw CMD_INVENTORY
                                             dw CMD_LOOP
 CMD_INVENTORY:                              PUSH HL
                                             LD HL,TEXT_HAVE_WITH_ME 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             LD (VAR_TEMP),0x0
                                             LD HL,ITEMS_BY_ROOM_TABLE
@@ -459,16 +459,16 @@ LOOP_INVENTORY:                             LD A,(HL)
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             LD A,(HL)
                                             CP 0xfd ; fd - weared item
                                             JR NZ,ITEM_NOT_WEARED
                                             PUSH HL
                                             LD HL,TEXT_WHICH_I_AM_WEARING 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
-ITEM_NOT_WEARED                             CALL SCREEN.PRINT_CR
+ITEM_NOT_WEARED                             CALL OUTPUT.PRINT_CR
 NEXT_SCAN_ITEM:                             INC HL
                                             INC C
                                             JR LOOP_INVENTORY
@@ -477,7 +477,7 @@ INVENTORY_EMPTY:                            XOR A
                                             JP NZ,CMD_LOOP
                                             PUSH HL
                                             LD HL,TEXT_NOTHING 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_UNWEAR_ITEM:                            CALL GET_ROOM_OF_ITEM
@@ -485,7 +485,7 @@ CMD_UNWEAR_ITEM:                            CALL GET_ROOM_OF_ITEM
                                             JR Z,IS_ITEM_WEARED
                                             PUSH HL
                                             LD HL,TEXT_NOT_WEARING 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 IS_ITEM_WEARED:                             LD A,(VAR_ITEMS_COUNT)
@@ -493,7 +493,7 @@ IS_ITEM_WEARED:                             LD A,(VAR_ITEMS_COUNT)
                                             JR NZ,IS_SPACE_ENOUGH
                                             PUSH HL
                                             LD HL,TEXT_HAND_FULL 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 IS_SPACE_ENOUGH:                            LD (HL),0xfe
@@ -504,7 +504,7 @@ CMD_GET_ITEM:                               LD A,(VAR_ITEMS_COUNT)
                                             JR NZ,SPACE_IS_ENOUGH
                                             PUSH HL
                                             LD HL,TEXT_CANT_CARRY 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 SPACE_IS_ENOUGH:                            CALL GET_ROOM_OF_ITEM
@@ -518,11 +518,11 @@ LAB_ram_6272:                               CP 0xfd
                                             CP 0xfe
                                             JR Z,LAB_ram_6298
                                             LD HL,TEXT_I_DONT_SEE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             JP CMD_LOOP
 LAB_ram_6298:                               PUSH HL
                                             LD HL,TEXT_ALREADY_HAVE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_DROP_ITEM:                              CALL GET_ROOM_OF_ITEM
@@ -530,7 +530,7 @@ CMD_DROP_ITEM:                              CALL GET_ROOM_OF_ITEM
                                             JR NZ,LAB_ram_62dd
 ITEM_IN_INVENTORY_BUT_WEARED:               PUSH HL
                                             LD HL,TEXT_I_DONT_HAVE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 LAB_ram_62dd:                               CP 0xfd
@@ -551,12 +551,12 @@ WEAR_NOT_IN_INVENTORY:                      CP 0xfd
                                             JR NZ,WEAR_NOT_WEARED
                                             PUSH HL
                                             LD HL,TEXT_ALREADY_WEAR 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 WEAR_NOT_WEARED:                            PUSH HL
                                             LD HL,TEXT_I_DONT_HAVE_IT 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_PRINT_ANSWER:                           LD HL,ANSWER_POINTER ; one param - text of action
@@ -568,7 +568,7 @@ CMD_PRINT_ANSWER:                           LD HL,ANSWER_POINTER ; one param - t
                                             INC HL
                                             LD D,(HL)
                                             EX DE,HL
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             JR CMD_ENDED
 CMD_LOOK_AROUND:                            POP BC
                                             POP HL
@@ -604,12 +604,12 @@ CMD_SWAP_ITEM:                              CALL GET_ROOM_OF_ITEM
 CMD_END:                                    JP TRY_AGAIN
 CMD_OK:                                     PUSH HL
                                             LD HL,TEXT_OK 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             JP CMD_LOOP
 CMD_SAVE:                                   PUSH HL
                                             LD HL,TEXT_WANT_SAVE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             CP 0x59
@@ -619,7 +619,7 @@ CMD_SAVE:                                   PUSH HL
                                             LD DE,0x2b
                                             PUSH HL
                                             LD HL,TEXT_READY_TYPE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             LD A,0xff
@@ -633,18 +633,18 @@ CMD_SAVE:                                   PUSH HL
                                             POP IX
                                             PUSH HL
                                             LD HL,TEXT_CONTINUE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             CP 0x59
                                             JP Z,CMD_LOOP
 TRY_AGAIN:                                  PUSH HL
                                             LD HL,TEXT_TRY_AGAIN 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
 CHECK_YES_NO:                               PUSH HL
                                             LD HL,TEXT_ANSWER 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             NOP
@@ -696,12 +696,12 @@ CMD_SCORE:                                  LD A,(VAR_SCORE)
                                             DAA
                                             LD (VAR_SCORE+1),A
 CMD_GAME:                                   LD HL,TEXT_SCORE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             LD A,(VAR_SCORE+1)
                                             CALL PRINT_SCORE
                                             LD A,(VAR_SCORE)
                                             CALL PRINT_SCORE
-                                            CALL SCREEN.PRINT_CR
+                                            CALL OUTPUT.PRINT_CR
                                             POP BC
                                             POP HL
                                             JP NEXT_COMMAND
@@ -710,7 +710,7 @@ PRINT_SCORE:                                PUSH AF
                                             RRA
                                             RRA
                                             RRA
-                                            CALL SCREEN.PRINT_DIGIT
+                                            CALL OUTPUT.PRINT_DIGIT
                                             POP AF
 CMD_DECODE:                                 PUSH HL ; HL pointed to input buffer, command code return in A, ff - command not found HL not changed
                                             LD HL,0x2020 ; two spaces
@@ -761,7 +761,7 @@ CMD_NOT_EQUAL:                              INC HL
                                             JR CMD_NEXT_COMMAND
 GAME_RESTORED:                              PUSH HL
                                             LD HL,TEXT_READY_CASSETE 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
                                             PUSH IX
@@ -779,10 +779,10 @@ GAME_RESTORED:                              PUSH HL
                                             RET
 GAME_INIT:                                  CALL INIT_SCREEN
                                             LD HL,TEXT_WELCOME 
-                                            CALL SCREEN.PRINT_TEXT_WRAP
+                                            CALL OUTPUT.PRINT_TEXT_WRAP
 WAIT_KEY:                                   XOR A
-                                            LD (KEYBOARD.LASTK),A
-WRONG_KEY:                                  LD A,(KEYBOARD.LASTK)
+                                            LD (INPUT.LASTK),A
+WRONG_KEY:                                  LD A,(INPUT.LASTK)
                                             OR A
                                             JR Z,WRONG_KEY
                                             CP 0x90 ;
@@ -793,27 +793,28 @@ WRONG_KEY:                                  LD A,(KEYBOARD.LASTK)
                                             RET C
                                             SUB 0x20 ; lower to caps
                                             RET
-READ_LINE_START:                            PUSH HL
-                                            LD B,0x20
+READ_LINE_START:                            CALL OUTPUT.CURSOR_SHOW
+                                            PUSH HL
+                                            LD B,30
 INPUT_LINE_LOOP:                            LD (HL),0x0
                                             CALL WAIT_KEY
                                             CP 0xc ; delete
                                             JR NZ,INPUT_CHAR
-                                            LD A,0x20
+                                            LD A,30
                                             CP B
                                             JR Z,INPUT_LINE_LOOP
                                             INC B
                                             DEC HL
 INPUT_LINE_FULL:                            LD A,0x8
-                                            CALL SCREEN.PRINT_CHAR
+                                            CALL OUTPUT.PRINT_CHAR
                                             LD A,0x20
-                                            CALL SCREEN.PRINT_CHAR
+                                            CALL OUTPUT.PRINT_CHAR
                                             LD A,0x8
-                                            CALL SCREEN.PRINT_CHAR
+                                            CALL OUTPUT.PRINT_CHAR
                                             JR INPUT_LINE_LOOP
-INPUT_CHAR:                                 CALL SCREEN.PRINT_CHAR
-                                            CP 0xd
+INPUT_CHAR:                                 CP 0xd
                                             JR Z,INPUT_END_LINE
+                                            CALL OUTPUT.PRINT_CHAR
                                             INC B
                                             DEC B
                                             JR Z,INPUT_LINE_FULL
@@ -822,13 +823,15 @@ INPUT_CHAR:                                 CALL SCREEN.PRINT_CHAR
                                             INC HL
                                             JR INPUT_LINE_LOOP
 INPUT_END_LINE:                             POP HL
+                                            CALL OUTPUT.CURSOR_HIDE
+                                            CALL OUTPUT.PRINT_CR
                                             RET
 INIT_SCREEN:                                PUSH HL
                                             PUSH DE
                                             PUSH BC
                                             PUSH AF
                                             LD A, CLR_BLACK<<3 | CLR_GREEN
-                                            CALL SCREEN.CLEAR
+                                            CALL OUTPUT.CLEAR
                                             POP AF
                                             POP BC
                                             POP DE

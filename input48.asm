@@ -1,4 +1,4 @@
-	module KEYBOARD
+	module INPUT
 	
 	; + FF if the set is unused, or a main code from the main key table otherwise
 	;Call counter; initially + 05, and decremented on each call to KEYBOARD

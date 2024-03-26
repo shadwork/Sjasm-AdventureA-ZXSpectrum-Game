@@ -52,10 +52,10 @@ Mkfile.old
 dkms.conf
 
 # Mac os
-#.DS_Store
+.DS_Store
 
 Sjasmplus
 *.sna
 *.bin
-#*.lst
-#*.swp
+*.lst
+*.swp

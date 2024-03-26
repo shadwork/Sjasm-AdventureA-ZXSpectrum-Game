@@ -56,6 +56,8 @@ VARS:                                       ; clear on init 0x1e length = 30
                                             db 0xF1 ; IX+1B
                                             db 0xDD ; IX+1C
                                             db 0xE1 ; IX+1D
+
+ITEMS_BY_ROOM_TABLE:                        ds 0x1d ; current state of items
 VAR_CMD_BUF0:                               dw 0x0000
 VAR_CMD_BUF1:                               dw 0x0000
 VAR_SCORE:                                  dw 0x0000
@@ -616,20 +618,13 @@ CMD_SAVE:                                   PUSH HL
                                             JR NZ,TRY_AGAIN
                                             PUSH IX
                                             LD IX,GAME_STATE
-                                            LD DE,0x2b
+                                            LD DE,0x2b + 0x1d
                                             PUSH HL
                                             LD HL,TEXT_READY_TYPE 
                                             CALL OUTPUT.PRINT_TEXT_WRAP
                                             POP HL
                                             CALL WAIT_KEY
-                                            LD A,0xff
-                                            SCF
-                                            CALL 0x04c2
-                                            LD IX,ITEMS_BY_ROOM_TABLE
-                                            LD DE,0x1d
-                                            LD A,0xff
-                                            SCF
-                                            CALL 0x04c2
+                                            CALL STORE.SAVE
                                             POP IX
                                             PUSH HL
                                             LD HL,TEXT_CONTINUE 
@@ -766,15 +761,8 @@ GAME_RESTORED:                              PUSH HL
                                             CALL WAIT_KEY
                                             PUSH IX
                                             LD IX,GAME_STATE
-                                            LD DE,0x29 ;size of save
-                                            LD A,0xff
-                                            SCF
-                                            CALL 0x0556
-                                            LD IX,ITEMS_BY_ROOM_TABLE
-                                            LD DE,0x1d ;size of game state
-                                            LD A,0xff
-                                            SCF
-                                            CALL 0x0556
+                                            LD DE,0x29 + 0x1d ;size of save
+                                            CALL STORE.LOAD
                                             POP IX
                                             RET
 GAME_INIT:                                  CALL INIT_SCREEN
@@ -868,7 +856,6 @@ ITEMS_BY_ROOM_TABLE_INIT:
                                             db 0x02
                                             db 0x0F
                                             db 0xFF
-ITEMS_BY_ROOM_TABLE:                        ds 0x1d ; current state of items
 
                                             include text_commons.asm
 ITEM_DESC_POINTER:                          include text_items.asm
